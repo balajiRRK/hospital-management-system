@@ -6,7 +6,14 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "dev:up": "docker compose up -d --build",
+    "dev:down": "docker compose down",
+    "dev:reset": "docker compose down -v && docker compose up -d --build",
+    "logs:api": "docker compose logs -f backend",
+    "logs:db": "docker compose logs -f db",
+    "logs:web": "docker compose logs -f frontend",
+    "ops:pgadmin": "docker compose --profile ops up -d pgadmin"
   },
   "dependencies": {
     "react": "19.1.0",
