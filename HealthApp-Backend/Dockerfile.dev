@@ -1,0 +1,9 @@
+FROM eclipse-temurin:21-jdk-alpine
+
+WORKDIR /app
+
+
+RUN apk add --no-cache bash tini
+ENTRYPOINT ["/sbin/tini", "--"]
+
+EXPOSE 8080

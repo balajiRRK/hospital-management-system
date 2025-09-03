@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: healthapp_db
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./HealthApp-Backend
+      dockerfile: Dockerfile.dev
+    container_name: healthapp_backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DEVTOOLS_RESTART_ENABLED: "true"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+    ports:
+      - "${BACKEND_PORT}:8080"
+    volumes:
+      - ./HealthApp-Backend:/app
+      - maven_cache:/root/.m2
+    command: [ "sh", "-c", "chmod +x mvnw && ./mvnw -q spring-boot:run" ]
+
+  frontend:
+    build:
+      context: ./healthapp-frontend
+      dockerfile: Dockerfile.dev
+    container_name: healthapp_frontend
+    depends_on:
+      - backend
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:${BACKEND_PORT}
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    volumes:
+      - ./healthapp-frontend:/app
+      - /app/node_modules
+    command: [ "sh", "-c", "npm install && npm run dev" ]
+
+volumes:
+  db_data:
+  maven_cache:
