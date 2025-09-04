@@ -1,4 +1,4 @@
-package com.osu.HealthApp.Component;
+package com.osu.HealthApp.component;
 
 import com.osu.HealthApp.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
@@ -20,8 +20,7 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * Reads ACCESS_TOKEN from cookie, validates it, and sets Authentication in the context.
- * This runs before UsernamePasswordAuthenticationFilter.
+ * Reads ACCESS_TOKEN from cookie, validates it, and sets Authentication.
  */
 @Component
 @RequiredArgsConstructor
@@ -44,14 +43,14 @@ public class JwtCookieAuthFilter extends OncePerRequestFilter {
 
             if (token != null) {
                 try {
-                    var jws = jwt.parse(token); // throws if invalid/expired
+                    var jws = jwt.parse(token);           // throws if invalid/expired
                     String email = jws.getPayload().getSubject();
 
                     UserDetails ud = uds.loadUserByUsername(email);
                     var auth = new UsernamePasswordAuthenticationToken(ud, null, ud.getAuthorities());
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
                     SecurityContextHolder.getContext().setAuthentication(auth);
-                } catch (io.jsonwebtoken.JwtException ex) {
+                } catch (io.jsonwebtoken.JwtException ignored) {
                     // Invalid/expired token -> leave unauthenticated
                 }
             }

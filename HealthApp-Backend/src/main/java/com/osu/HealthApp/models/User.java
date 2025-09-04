@@ -1,6 +1,5 @@
 package com.osu.HealthApp.models;
 
-import com.osu.HealthApp.Role;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -12,8 +11,7 @@ import java.util.Set;
 @Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = "email"))
 @Data
 public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable=false)

@@ -1,5 +1,11 @@
-package com.osu.HealthApp.DTOs;
+package com.osu.HealthApp.dtos;
 
-import com.osu.HealthApp.Role;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
-public record RegisterRequest(String email, String password, Role role) {}
+/** registration payload, no role here cause all start off as patient. */
+public record RegisterRequest(
+        @Email @NotBlank String email,
+        @NotBlank @Size(min = 8, max = 72) String password
+) {}

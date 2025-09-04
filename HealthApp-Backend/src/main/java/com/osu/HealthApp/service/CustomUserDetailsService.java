@@ -22,8 +22,10 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .map(r -> new SimpleGrantedAuthority("ROLE_" + r.name()))
                 .toList();
 
+        // we use email as "username"
         return new org.springframework.security.core.userdetails.User(
-                u.getEmail(), u.getPasswordHash(), u.isEnabled(), true, true, true, authorities
+                u.getEmail(), u.getPasswordHash(), u.isEnabled(),
+                true, true, true, authorities
         );
     }
 }

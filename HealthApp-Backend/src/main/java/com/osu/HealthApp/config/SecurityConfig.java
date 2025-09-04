@@ -1,10 +1,9 @@
 package com.osu.HealthApp.config;
 
-import com.osu.HealthApp.Component.JwtCookieAuthFilter;
+import com.osu.HealthApp.component.JwtCookieAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -21,10 +20,6 @@ import org.springframework.web.cors.CorsConfiguration;
 
 import java.util.List;
 
-/**
- * Stateless API using JWT in HttpOnly cookies.
- * CSRF is enabled (since cookies auto-send). Auth endpoints are exempted.
- */
 @Configuration
 @EnableMethodSecurity
 @RequiredArgsConstructor
@@ -46,18 +41,15 @@ public class SecurityConfig {
                 }))
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/api/auth/**")
+                        .ignoringRequestMatchers("/api/auth/**") // auth endpoints are stateless
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/public/**").permitAll()
-
+                        .requestMatchers("/api/me").authenticated()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/doctor/**").hasAnyRole("DOCTOR","ADMIN")
                         .requestMatchers("/api/nurse/**").hasAnyRole("NURSE","ADMIN")
                         .requestMatchers("/api/patient/**").hasAnyRole("PATIENT","ADMIN")
-
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authProvider)
@@ -68,25 +60,17 @@ public class SecurityConfig {
         return http.build();
     }
 
-    /**
-     * Modern, non-deprecated construction:
-     * - Provide UserDetailsService in the constructor (recommended by Spring docs)
-     * - Then set the PasswordEncoder.
-     */
     @Bean
     public AuthenticationProvider authenticationProvider(PasswordEncoder encoder, UserDetailsService uds) {
-        var provider = new DaoAuthenticationProvider(uds); // <- constructor injection (recommended)
+        var provider = new DaoAuthenticationProvider(uds);
         provider.setPasswordEncoder(encoder);
         return provider;
     }
 
-    /**
-     * Only if you need AuthenticationManager elsewhere (e.g., manual auth flows).
-     */
     @Bean
     public AuthenticationManager authenticationManager(
-            org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration config
+            org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration cfg
     ) throws Exception {
-        return config.getAuthenticationManager();
+        return cfg.getAuthenticationManager();
     }
 }

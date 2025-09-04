@@ -1,5 +1,3 @@
-package com.osu.HealthApp;
+package com.osu.HealthApp.models;
 
-public enum Role {
-    ADMIN, DOCTOR, NURSE, PATIENT
-}
+public enum Role { ADMIN, DOCTOR, NURSE, PATIENT }

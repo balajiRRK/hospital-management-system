@@ -1,25 +1,20 @@
-package com.osu.HealthApp.Controller;
+package com.osu.HealthApp.controller;
 
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * Example protected API:
- * GET /api/doctor/me -> requires ROLE_DOCTOR or ROLE_ADMIN (see @PreAuthorize)
- */
-
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/doctor")
 public class DoctorController {
-
-    @GetMapping("/me")
     @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
-    public DoctorMeResponse me(Authentication auth) {
-        return new DoctorMeResponse(auth.getName(), "You have access to doctor resources.");
+    @GetMapping("/notes")
+    public Map<String, Object> notes() {
+        return Map.of(
+                "section", "doctor",
+                "notes", List.of("Patient A stable", "Patient B needs follow-up")
+        );
     }
-
-    public record DoctorMeResponse(String email, String message) {}
 }

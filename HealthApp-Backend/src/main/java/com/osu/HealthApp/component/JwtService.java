@@ -1,4 +1,4 @@
-package com.osu.HealthApp.Component;
+package com.osu.HealthApp.component;
 
 import com.osu.HealthApp.models.User;
 import io.jsonwebtoken.Claims;
@@ -6,65 +6,65 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.List;
 
 /**
- * Issues and validates JWTs (HS256 by default).
- * In production consider RS256 with a keystore and key rotation.
+ * Issues and validates JWTs (HS256). Might have to consider RS256 + rotation if we go in production.
  */
 @Component
-@RequiredArgsConstructor
 public class JwtService {
 
-    @Value("${jwt.issuer}") private String issuer;
+    @Value("${jwt.issuer}")             private String issuer;
     @Value("${jwt.access-ttl-minutes}") private long accessTtlMin;
-    @Value("${jwt.refresh-ttl-days}") private long refreshTtlDays;
-    @Value("${jwt.hs256-secret}") private String secret;
+    @Value("${jwt.refresh-ttl-days}")   private long refreshTtlDays;
+    @Value("${jwt.hs256-secret}")       private String secret;
 
     private SecretKey hmacKey;
 
     @PostConstruct
     void init() {
-        // Fail fast if the secret is weak. 256-bit key (>=32 bytes) recommended.
         if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
-            throw new IllegalStateException("JWT secret must be at least 256 bits. Set JWT_SECRET env var.");
+            throw new IllegalStateException("JWT secret must be >= 32 bytes (256 bits). Set JWT_SECRET.");
         }
         this.hmacKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public String generateAccessToken(User user) {
+    /** Access token: subject=email, roles claim, short TTL. */
+    public String generateAccessToken(User u) {
         Instant now = Instant.now();
         return Jwts.builder()
-                .subject(user.getEmail())
+                .subject(u.getEmail())
                 .issuer(issuer)
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(accessTtlMin, ChronoUnit.MINUTES)))
-                .claim("roles", user.getRoles()) // serialized enum names
-                .signWith(hmacKey, Jwts.SIG.HS256)
+                .expiration(Date.from(now.plus(Duration.ofMinutes(accessTtlMin))))
+                .claim("roles", u.getRoles().stream().map(Enum::name).toList())
+                .signWith(hmacKey)
                 .compact();
     }
 
-    public String generateRefreshToken(User user, String jti) {
+    /** Refresh token: subject=email, jti set by caller, longer TTL. */
+    public String generateRefreshToken(User u, String jti) {
         Instant now = Instant.now();
         return Jwts.builder()
-                .subject(user.getEmail())
+                .subject(u.getEmail())
                 .issuer(issuer)
                 .id(jti)
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(refreshTtlDays, ChronoUnit.DAYS)))
-                .claim("typ", "refresh")
-                .signWith(hmacKey, Jwts.SIG.HS256)
+                .expiration(Date.from(now.plus(Duration.ofDays(refreshTtlDays))))
+                .claim("type", "refresh")
+                .signWith(hmacKey)
                 .compact();
     }
 
+    /** Parse & verify signature/exp/issuer. Throws on invalid. */
     public Jws<Claims> parse(String token) {
         return Jwts.parser().verifyWith(hmacKey).build().parseSignedClaims(token);
     }

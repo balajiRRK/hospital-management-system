@@ -1,7 +1,13 @@
-package com.osu.HealthApp.DTOs;
+package com.osu.HealthApp.dtos;
 
-import com.osu.HealthApp.Role;
+import com.osu.HealthApp.models.Role;
 
 import java.util.Set;
 
-public record AuthResponse(String email, Set<Role> roles) {}
+/**
+ * cookies carry tokens. dont echoing raw user input.
+ */
+public record AuthResponse(
+        boolean ok,
+        Set<Role> roles
+) { }

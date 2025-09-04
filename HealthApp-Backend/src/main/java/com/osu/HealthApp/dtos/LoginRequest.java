@@ -1,3 +1,10 @@
-package com.osu.HealthApp.DTOs;
+package com.osu.HealthApp.dtos;
 
-public record LoginRequest(String email, String password) {}
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+
+public record LoginRequest(
+        @Email @NotBlank String email,
+        @NotBlank String password
+) {
+}
