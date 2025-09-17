@@ -4,6 +4,7 @@ import com.osu.HealthApp.dtos.AuthResponse;
 import com.osu.HealthApp.dtos.LoginRequest;
 import com.osu.HealthApp.dtos.RegisterRequest;
 import com.osu.HealthApp.service.AuthService;
+import com.osu.HealthApp.models.Context;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,10 +27,16 @@ public class AuthController {
         return authService.register(req);
     }
 
-    /** Login: sets ACCESS_TOKEN and REFRESH_TOKEN cookies. */
-    @PostMapping(value = "/login", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest req) {
-        return authService.login(req);
+    /** Login: sets ACCESS_TOKEN and REFRESH_TOKEN cookies for a patient-context login. */
+    @PostMapping(value = "/loginpatient", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<AuthResponse> loginPatient(@Valid @RequestBody LoginRequest req) {
+        return authService.login(req, Context.PATIENT);
+    }
+	
+	/** Login: sets ACCESS_TOKEN and REFRESH_TOKEN cookies for a staff-context login. */
+    @PostMapping(value = "/loginstaff", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<AuthResponse> loginStaff(@Valid @RequestBody LoginRequest req) {
+        return authService.login(req, Context.STAFF);
     }
 
     /** Refresh: rotates refresh token; issues new access + refresh cookies. */

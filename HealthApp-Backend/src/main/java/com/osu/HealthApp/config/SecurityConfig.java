@@ -4,6 +4,11 @@ import com.osu.HealthApp.component.JwtCookieAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import static org.springframework.security.authorization.AuthorizationManagers.allOf;
+import static org.springframework.security.authorization.AuthorizationManagers.anyOf;
+import static org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole;
+import static org.springframework.security.authorization.AuthorityAuthorizationManager.hasAnyRole;
+import static org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -46,10 +51,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/me").authenticated()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/doctor/**").hasAnyRole("DOCTOR","ADMIN")
-                        .requestMatchers("/api/nurse/**").hasAnyRole("NURSE","ADMIN")
-                        .requestMatchers("/api/patient/**").hasAnyRole("PATIENT","ADMIN")
+                        .requestMatchers("/api/admin/**").access(allOf(hasRole("ADMIN"), hasAuthority("CONTEXT_STAFF")))
+                        .requestMatchers("/api/doctor/**").access(allOf(hasAnyRole("DOCTOR","ADMIN"), hasAuthority("CONTEXT_STAFF")))
+                        .requestMatchers("/api/nurse/**").access(allOf(hasAnyRole("NURSE","ADMIN"), hasAuthority("CONTEXT_STAFF")))
+                        .requestMatchers("/api/patient/**").access(anyOf(allOf(hasRole("PATIENT"), hasAuthority("CONTEXT_PATIENT")), allOf(hasRole("ADMIN"), hasAuthority("CONTEXT_STAFF"))))
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authProvider)

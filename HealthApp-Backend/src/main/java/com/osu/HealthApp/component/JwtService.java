@@ -1,6 +1,7 @@
 package com.osu.HealthApp.component;
 
 import com.osu.HealthApp.models.User;
+import com.osu.HealthApp.models.Context;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
@@ -14,7 +15,6 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
-import java.util.List;
 
 /**
  * Issues and validates JWTs (HS256). Might have to consider RS256 + rotation if we go in production.
@@ -38,20 +38,20 @@ public class JwtService {
     }
 
     /** Access token: subject=email, roles claim, short TTL. */
-    public String generateAccessToken(User u) {
+    public String generateAccessToken(User u, Context context) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(u.getEmail())
                 .issuer(issuer)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(Duration.ofMinutes(accessTtlMin))))
-                .claim("roles", u.getRoles().stream().map(Enum::name).toList())
+                .claim("context", context.name())
                 .signWith(hmacKey)
                 .compact();
     }
 
     /** Refresh token: subject=email, jti set by caller, longer TTL. */
-    public String generateRefreshToken(User u, String jti) {
+    public String generateRefreshToken(User u, Context context, String jti) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(u.getEmail())
@@ -60,6 +60,7 @@ public class JwtService {
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plus(Duration.ofDays(refreshTtlDays))))
                 .claim("type", "refresh")
+				.claim("context", context.name())
                 .signWith(hmacKey)
                 .compact();
     }
