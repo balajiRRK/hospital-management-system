@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 export default function Home() {
@@ -7,12 +9,36 @@ export default function Home() {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
           Welcome
         </h1>
-        <Link
-          href="/doctor_dashboard"
-          className="px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
-        >
-          Doctor Dashboard
-        </Link>
+
+        <div className="flex flex-col gap-3 w-64">
+          <Link
+            href="/doctor_dashboard"
+            className="px-6 py-3 rounded-xl bg-white border border-black text-black font-medium text-center hover:bg-black hover:text-white transition-colors"
+          >
+            Doctor Dashboard
+          </Link>
+
+          <Link
+            href="/patient_dashboard"
+            className="px-6 py-3 rounded-xl bg-white border border-black text-black font-medium text-center hover:bg-black hover:text-white transition-colors"
+          >
+            Patient Dashboard
+          </Link>
+
+          <Link
+            href="/nurse_dashboard"
+            className="px-6 py-3 rounded-xl bg-white border border-black text-black font-medium text-center hover:bg-black hover:text-white transition-colors"
+          >
+            Nurse Dashboard
+          </Link>
+
+          <Link
+            href="/admin_dashboard"
+            className="px-6 py-3 rounded-xl bg-white border border-black text-black font-medium text-center hover:bg-black hover:text-white transition-colors"
+          >
+            Admin Dashboard
+          </Link>
+        </div>
       </main>
     </div>
   );
