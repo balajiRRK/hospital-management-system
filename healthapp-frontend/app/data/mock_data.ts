@@ -1,4 +1,5 @@
 export type Doctor = {
+  id: number;
   name: string;
   email: string;
 };
@@ -7,6 +8,8 @@ export type Patient = {
   id: number;
   name: string;
   code: string;
+  visitResults: string[];
+  doctorId: number;
 };
 
 export type Appointment = {
@@ -23,17 +26,35 @@ export type History = {
   notes: string;
 };
 
-export const doctor: Doctor = {
-  name: "Dr. Smith",
-  email: "dr.smith@example.com",
-};
+export const doctors: Doctor[] = [
+  { id: 1, name: "Dr. Smith", email: "dr.smith@example.com" },
+  { id: 2, name: "Dr. Johnson", email: "dr.johnson@example.com" },
+];
 
 export const patients: Patient[] = [
-  { id: 1, name: "John Doe", code: "MAN2785" },
-  { id: 2, name: "Jane Smith", code: "MAN2345" },
-  { id: 3, name: "Emily Johnson", code: "MAN3457" },
-  { id: 4, name: "Michael Brown", code: "MAN4568" },
-  { id: 5, name: "Sophia Davis", code: "MAN5678" },
+  { id: 1, name: "John Doe", code: "MAN2785", visitResults: [], doctorId: 1 },
+  { id: 2, name: "Jane Smith", code: "MAN2345", visitResults: [], doctorId: 1 },
+  {
+    id: 3,
+    name: "Emily Johnson",
+    code: "MAN3457",
+    visitResults: [],
+    doctorId: 2,
+  },
+  {
+    id: 4,
+    name: "Michael Brown",
+    code: "MAN4568",
+    visitResults: [],
+    doctorId: 2,
+  },
+  {
+    id: 5,
+    name: "Sophia Davis",
+    code: "MAN5678",
+    visitResults: [],
+    doctorId: 1,
+  },
 ];
 
 export const appointments: Appointment[] = [

@@ -1,81 +1,125 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  doctor,
-  patients,
+  doctors,
+  patients as initialPatients,
   appointments,
   history,
   Patient,
   History,
-  Appointment,
+  Doctor,
 } from "../data/mock_data";
 
 export default function DoctorDashboard() {
-  const [activeTab, setActiveTab] = useState("Dashboard");
+  const [currentDoctor, setCurrentDoctor] = useState<Doctor>(doctors[0]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [visitInput, setVisitInput] = useState("");
+  const [activeTab, setActiveTab] = useState("Dashboard");
 
-  const handlePatientClick = (patient: Patient) => {
-    setSelectedPatient(patient);
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("patients") || "[]");
+    if (saved.length) setPatients(saved);
+    else setPatients(initialPatients);
+  }, []);
+
+  const doctorPatients = patients.filter(
+    (p) => p.doctorId === currentDoctor.id
+  );
+
+  const savePatients = (updated: Patient[]) => {
+    setPatients(updated);
+    localStorage.setItem("patients", JSON.stringify(updated));
+  };
+
+  const handlePatientClick = (p: Patient) => {
+    setSelectedPatient(p);
+  };
+
+  const handleVisitSubmit = () => {
+    if (!selectedPatient || !visitInput.trim()) return;
+    const updatedPatients = patients.map((p) =>
+      p.id === selectedPatient.id
+        ? { ...p, visitResults: [...p.visitResults, visitInput.trim()] }
+        : p
+    );
+    savePatients(updatedPatients);
+    setSelectedPatient(
+      updatedPatients.find((p) => p.id === selectedPatient.id) || null
+    );
+    setVisitInput("");
   };
 
   const patientHistory: History[] = selectedPatient
-    ? history.filter((h: History) => h.patientId === selectedPatient.id)
+    ? history.filter((h) => h.patientId === selectedPatient.id)
     : [];
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold mb-2">Doctor</h2>
-        <div className="flex space-x-2">
-          <button
-            className={`px-4 py-2 rounded border ${
-              activeTab === "Dashboard"
-                ? "border-black font-semibold"
-                : "border-gray-400"
-            }`}
-            onClick={() => setActiveTab("Dashboard")}
-          >
-            Dashboard
-          </button>
-          <button
-            className={`px-4 py-2 rounded border ${
-              activeTab === "Patients"
-                ? "border-black font-semibold"
-                : "border-gray-400"
-            }`}
-            onClick={() => setActiveTab("Patients")}
-          >
-            Patients
-          </button>
-          <button
-            className={`px-4 py-2 rounded border ${
-              activeTab === "Appointments"
-                ? "border-black font-semibold"
-                : "border-gray-400"
-            }`}
-            onClick={() => setActiveTab("Appointments")}
-          >
-            Appointments
-          </button>
-        </div>
+      <div className="mb-6 flex items-center justify-between">
+        <h2 className="text-2xl font-semibold">Doctor: {currentDoctor.name}</h2>
+        <select
+          className="border px-2 py-1"
+          value={currentDoctor.id}
+          onChange={(e) => {
+            const doc = doctors.find((d) => d.id === parseInt(e.target.value));
+            if (doc) {
+              setCurrentDoctor(doc);
+              setSelectedPatient(null);
+            }
+          }}
+        >
+          {doctors.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="mb-6 flex space-x-2">
+        <button
+          className={`px-4 py-2 rounded border ${
+            activeTab === "Dashboard"
+              ? "border-black font-semibold"
+              : "border-gray-400"
+          }`}
+          onClick={() => setActiveTab("Dashboard")}
+        >
+          Dashboard
+        </button>
+        <button
+          className={`px-4 py-2 rounded border ${
+            activeTab === "Patients"
+              ? "border-black font-semibold"
+              : "border-gray-400"
+          }`}
+          onClick={() => setActiveTab("Patients")}
+        >
+          Patients
+        </button>
+        <button
+          className={`px-4 py-2 rounded border ${
+            activeTab === "Appointments"
+              ? "border-black font-semibold"
+              : "border-gray-400"
+          }`}
+          onClick={() => setActiveTab("Appointments")}
+        >
+          Appointments
+        </button>
       </div>
 
       <hr className="border-gray-300" />
 
       <div className="mt-6">
-        <h1 className="text-xl font-bold mb-2">{activeTab}</h1>
-        <p className="mb-4">
-          Doctor: <span className="font-medium">{doctor.name}</span> (
-          {doctor.email})
-        </p>
-
         {activeTab === "Dashboard" && (
           <div className="space-y-6">
             <div>
               <h2 className="text-lg font-semibold mb-2">Patients</h2>
               <ul className="space-y-1 w-64">
-                {patients.map((p: Patient) => (
+                {doctorPatients.map((p) => (
                   <li key={p.id}>
                     <button
                       className="px-3 py-1 border rounded w-full text-left"
@@ -86,6 +130,35 @@ export default function DoctorDashboard() {
                   </li>
                 ))}
               </ul>
+
+              {selectedPatient && (
+                <div className="mt-4">
+                  <input
+                    type="text"
+                    placeholder="Enter visit result"
+                    className="border px-2 py-1 w-full mb-2"
+                    value={visitInput}
+                    onChange={(e) => setVisitInput(e.target.value)}
+                  />
+                  <button
+                    className="px-4 py-2 border rounded"
+                    onClick={handleVisitSubmit}
+                  >
+                    Submit
+                  </button>
+
+                  {selectedPatient.visitResults.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="font-semibold mb-1">Visit Results:</h3>
+                      <ul className="list-disc list-inside">
+                        {selectedPatient.visitResults.map((res, idx) => (
+                          <li key={idx}>{res}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <hr className="border-gray-300" />
@@ -93,13 +166,15 @@ export default function DoctorDashboard() {
             <div>
               <h2 className="text-lg font-semibold mb-2">Appointments</h2>
               <ul className="space-y-1">
-                {appointments.map((a: Appointment) => {
+                {appointments.map((a) => {
                   const patient = patients.find(
-                    (p: Patient) => p.id === a.patientId
+                    (p) =>
+                      p.id === a.patientId && p.doctorId === currentDoctor.id
                   );
+                  if (!patient) return null;
                   return (
                     <li key={a.id} className="px-3 py-1 border rounded">
-                      {patient?.name} - {a.time} - {a.status}
+                      {patient.name} - {a.time} - {a.status}
                     </li>
                   );
                 })}
@@ -126,7 +201,7 @@ export default function DoctorDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {patientHistory.map((h: History, idx: number) => (
+                      {patientHistory.map((h, idx) => (
                         <tr key={idx}>
                           <td className="px-4 py-2 border">{h.date}</td>
                           <td className="px-4 py-2 border">{h.visit}</td>
