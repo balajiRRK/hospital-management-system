@@ -18,16 +18,8 @@ import {
 
 const ROLE_ENDPOINTS: Record<string, string> = {
   patient: '/api/auth/loginpatient',
-  doctor: '/api/auth/register/doctor',
-  nurse: '/api/auth/register/nurse',
+  staff: '/api/auth/loginstaff',
   admin: '/api/auth/register/admin',
-};
-
-const ROLE_DASHBOARD: Record<string, string> = {
-  patient: '/dashboard/patient',
-  doctor: '/dashboard/doctor',
-  nurse: '/dashboard/nurse',
-  admin: '/dashboard/admin',
 };
 
 export default function SignIn() {
@@ -48,16 +40,14 @@ export default function SignIn() {
       const url = ROLE_ENDPOINTS[role];
       if (!url || !base)
         throw new Error('Unknown role, shouldnt tho because of default or base is broken');
-
-      const response = await axios.post(
-        `${base}${url}`,
-        { email, password },
-        { withCredentials: true, headers: { 'Content-Type': 'application/json' } },
-      );
-
-      // Redirect based on role
-      const jsonRole = response.data.role;
-      const redirect = ROLE_DASHBOARD[role] || `/dashboard/${jsonRole}`;
+        await axios.post(
+            `${base}${url}`,
+            { email, password },
+            { withCredentials: true, headers: { 'Content-Type': 'application/json' } },
+        );
+// Redirect based on role
+      //const jsonRole = role // [Patient, Docter] or [Patient, Nurse] or [Patient, Admin]
+      const redirect = `/dashboard/${role}`;
       router.push(redirect);
       // gbt wrote this error handling part because for the life of me i couldnt solve the issue
     } catch (err: unknown) {
@@ -91,8 +81,7 @@ export default function SignIn() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="patient">Patient</SelectItem>
-                <SelectItem value="doctor">Doctor</SelectItem>
-                <SelectItem value="nurse">Nurse</SelectItem>
+                <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
