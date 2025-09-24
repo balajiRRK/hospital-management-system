@@ -10,12 +10,10 @@ export default function Home() {
           <Navbar />
         </div>
         <header>
-          <h1> header </h1>
-
+          <h1>  </h1>
         </header>
         <main>
           <div className="flex justify-center text-3xl">
-            <h1> Main content </h1>
             <div className="flex flex-col items-center gap-6 p-8 rounded-2xl shadow-lg bg-white dark:bg-gray-800">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 Welcome

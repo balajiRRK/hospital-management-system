@@ -63,7 +63,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="p-6">
-      <Link href="/public" className="mb-4 inline-block px-4 py-2 border rounded">
+      <Link href="/" className="mb-4 inline-block px-4 py-2 border rounded">
         Back to Home
       </Link>
       <h1 className="text-2xl font-semibold mb-4">Admin Dashboard</h1>

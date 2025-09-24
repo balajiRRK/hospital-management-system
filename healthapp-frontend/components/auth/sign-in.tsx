@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,15 +19,20 @@ import {
 
 const ROLE_ENDPOINTS: Record<string, string> = {
   patient: '/api/auth/loginpatient',
-  staff: '/api/auth/loginstaff',
+  doctor: '/api/auth/loginstaff',
+  nurse: '/api/auth/loginstaff',
   admin: '/api/auth/register/admin',
 };
+
+function normalize(s: string) {
+  return s?.trim().toLowerCase();
+}
 
 export default function SignIn() {
   const router = useRouter();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const [role, setRole] = useState<string>('patient');
+  const [role, setRole] = useState<string>('patient'); // default to patient
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,26 +45,47 @@ export default function SignIn() {
       const base = process.env.NEXT_PUBLIC_API_URL;
       const url = ROLE_ENDPOINTS[role];
       if (!url || !base)
-        throw new Error('Unknown role, shouldnt tho because of default or base is broken');
-        await axios.post(
-            `${base}${url}`,
-            { email, password },
-            { withCredentials: true, headers: { 'Content-Type': 'application/json' } },
-        );
-// Redirect based on role
-      //const jsonRole = role // [Patient, Docter] or [Patient, Nurse] or [Patient, Admin]
-      const redirect = `/dashboard/${role}`;
-      router.push(redirect);
-      // gbt wrote this error handling part because for the life of me i couldnt solve the issue
-    } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { message?: string } } };
-        setError(axiosErr.response?.data?.message || 'Login failed');
-      } else if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Login failed');
+        throw new Error('Unknown role or missing API base URL');
+
+      // Hit the API endpoint for the selected role
+      const response = await axios.post(
+        `${base}${url}`,
+        { email, password },
+        {
+          withCredentials: true,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+
+      // ["Patient", "Doctor"], ["Patient", "Nurse"], ["Patient", "Admin"]
+      const rolesFromApi: string[] = Array.isArray(response?.data?.roles)
+        ? response.data.roles
+        : [];
+
+      const normalized = rolesFromApi.map(normalize);
+      const selected = normalize(role);
+
+      // check to see if  role is included in the API roles
+      if (!normalized.includes(selected)) {
+        toast.error(`You don't have the "${role}" role for this account.`);
+        return;
       }
+
+      // Allowed -> redirect based on what they chose
+      router.push(`/dashboard/${role}`);
+    } catch (err: unknown) {
+      // gbt wrote this error handling part because for the life of me i couldnt solve the issue
+      let msg = 'Login failed';
+
+      if (axios.isAxiosError(err)) {
+        const data = err.response?.data as { message?: string } | undefined;
+        msg = data?.message ?? err.message ?? msg;
+      } else if (err instanceof Error) {
+        msg = err.message ?? msg;
+      }
+
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -72,7 +99,7 @@ export default function SignIn() {
         <h1 className="mb-8 text-center text-3xl font-semibold">Sign in</h1>
 
         <form onSubmit={onSubmit} className="space-y-6">
-          {/* Role  select field */}
+          {/* Role select field */}
           <div className="space-y-2">
             <Label htmlFor="role">Sign in as</Label>
             <Select value={role} onValueChange={setRole}>
@@ -81,13 +108,14 @@ export default function SignIn() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="patient">Patient</SelectItem>
-                <SelectItem value="staff">Staff</SelectItem>
+                <SelectItem value="doctor">Doctor</SelectItem>
+                <SelectItem value="nurse">Nurse</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Email  field*/}
+          {/* Email field */}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -103,7 +131,7 @@ export default function SignIn() {
             />
           </div>
 
-          {/* Password part  */}
+          {/* Password field */}
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
@@ -123,14 +151,21 @@ export default function SignIn() {
             </p>
           )}
 
-          <Button type="submit" className="h-12 w-full text-base" disabled={loading || !canSubmit}>
+          <Button
+            type="submit"
+            className="h-12 w-full text-base"
+            disabled={loading || !canSubmit}
+          >
             {loading ? 'Signing in…' : 'Log in'}
           </Button>
         </form>
 
         <div className="text-muted-foreground mt-6 text-center text-sm">
           No account?{' '}
-          <a href="/Sign-up" className="font-bold text-black underline hover:no-underline">
+          <a
+            href="/Sign-up"
+            className="font-bold text-black underline hover:no-underline"
+          >
             Create one
           </a>
         </div>

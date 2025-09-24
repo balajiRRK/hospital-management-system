@@ -74,7 +74,7 @@ export default function DoctorDashboard() {
   return (
     <div className="p-6">
       <Link
-        href="/public"
+        href="/"
         className="mb-4 inline-block px-4 py-2 border rounded bg-black text-white hover:bg-gray-800"
       >
         Back to Home
