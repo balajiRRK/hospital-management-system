@@ -2,19 +2,23 @@ package com.osu.HealthApp.controller;
 
 import com.osu.HealthApp.dtos.AppointmentRequest;
 import com.osu.HealthApp.dtos.AppointmentResponse;
+import com.osu.HealthApp.dtos.DoctorAvailabilityResponse;
 import com.osu.HealthApp.service.AppointmentService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/appointments")
 public class AppointmentController {
-    @Autowired
-    private AppointmentService appointmentService;
+    private final AppointmentService appointmentService;
 
-    @PostMapping("create")
+    public AppointmentController(AppointmentService s) {
+        this.appointmentService = s;
+    }
+
+    @PostMapping
     public AppointmentResponse create(@RequestBody AppointmentRequest request) {
         return appointmentService.createAppointment(request);
     }
@@ -24,5 +28,16 @@ public class AppointmentController {
         return appointmentService.getAppointmentsForPatient(patientId);
     }
 
-    // Add more endpoints as needed (e.g., cancel, update)
+    @GetMapping("/doctor/{doctorId}")
+    public List<AppointmentResponse> getForDoctor(@PathVariable Long doctorId) {
+        return appointmentService.getAppointmentsForDoctor(doctorId);
+    }
+
+    @GetMapping("/doctor/{doctorId}/availability")
+    public DoctorAvailabilityResponse availability(
+            @PathVariable Long doctorId,
+            @RequestParam String date // "yyyy-MM-dd"
+    ) {
+        return appointmentService.getAvailabilityForDoctor(doctorId, LocalDate.parse(date));
+    }
 }

@@ -4,7 +4,9 @@ import com.osu.HealthApp.models.User;
 import com.osu.HealthApp.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.*;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,7 +24,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .map(r -> new SimpleGrantedAuthority("ROLE_" + r.name()))
                 .toList();
 
-        // we use email as "username"
+        // we use email as username
         return new org.springframework.security.core.userdetails.User(
                 u.getEmail(), u.getPasswordHash(), u.isEnabled(),
                 true, true, true, authorities

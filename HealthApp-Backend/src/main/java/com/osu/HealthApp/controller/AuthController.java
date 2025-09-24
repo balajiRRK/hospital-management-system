@@ -3,15 +3,18 @@ package com.osu.HealthApp.controller;
 import com.osu.HealthApp.dtos.AuthResponse;
 import com.osu.HealthApp.dtos.LoginRequest;
 import com.osu.HealthApp.dtos.RegisterRequest;
-import com.osu.HealthApp.service.AuthService;
 import com.osu.HealthApp.models.Context;
+import com.osu.HealthApp.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /** Auth endpoints: register/login/refresh/logout. */
 @RestController

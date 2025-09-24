@@ -2,7 +2,8 @@ package com.osu.HealthApp.models;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.time.LocalDateTime;
+
+import java.time.OffsetDateTime;
 
 @Entity
 @Data
@@ -17,7 +18,7 @@ public class Appointment {
     @ManyToOne(optional = false)
     private User doctor;
 
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    private OffsetDateTime startTime;
+    private OffsetDateTime endTime;
     private String reason;
 }

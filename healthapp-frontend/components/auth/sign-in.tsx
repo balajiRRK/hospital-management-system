@@ -44,8 +44,7 @@ export default function SignIn() {
     try {
       const base = process.env.NEXT_PUBLIC_API_URL;
       const url = ROLE_ENDPOINTS[role];
-      if (!url || !base)
-        throw new Error('Unknown role or missing API base URL');
+      if (!url || !base) throw new Error('Unknown role or missing API base URL');
 
       // Hit the API endpoint for the selected role
       const response = await axios.post(
@@ -54,7 +53,7 @@ export default function SignIn() {
         {
           withCredentials: true,
           headers: { 'Content-Type': 'application/json' },
-        }
+        },
       );
 
       // ["Patient", "Doctor"], ["Patient", "Nurse"], ["Patient", "Admin"]
@@ -151,21 +150,14 @@ export default function SignIn() {
             </p>
           )}
 
-          <Button
-            type="submit"
-            className="h-12 w-full text-base"
-            disabled={loading || !canSubmit}
-          >
+          <Button type="submit" className="h-12 w-full text-base" disabled={loading || !canSubmit}>
             {loading ? 'Signing in…' : 'Log in'}
           </Button>
         </form>
 
         <div className="text-muted-foreground mt-6 text-center text-sm">
           No account?{' '}
-          <a
-            href="/Sign-up"
-            className="font-bold text-black underline hover:no-underline"
-          >
+          <a href="/Sign-up" className="font-bold text-black underline hover:no-underline">
             Create one
           </a>
         </div>

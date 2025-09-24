@@ -1,13 +1,14 @@
 package com.osu.HealthApp.dtos;
 
 import lombok.Data;
-import java.time.LocalDateTime;
+
+import java.time.OffsetDateTime;
 
 @Data
 public class AppointmentRequest {
     private Long patientId;
     private Long doctorId;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    private OffsetDateTime startTime;
+    private OffsetDateTime endTime;
     private String reason;
 }
