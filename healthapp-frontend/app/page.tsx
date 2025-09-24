@@ -12,28 +12,28 @@ export default function Home() {
 
         <div className="flex flex-col gap-3 w-64">
           <Link
-            href="/doctor_dashboard"
+            href="dashboard/doctor"
             className="px-6 py-3 rounded-xl bg-white border border-black text-black font-medium text-center hover:bg-black hover:text-white transition-colors"
           >
             Doctor Dashboard
           </Link>
 
           <Link
-            href="/patient_dashboard"
+            href="dashboard/patient"
             className="px-6 py-3 rounded-xl bg-white border border-black text-black font-medium text-center hover:bg-black hover:text-white transition-colors"
           >
             Patient Dashboard
           </Link>
 
           <Link
-            href="/nurse_dashboard"
+            href="dashboard/nurse"
             className="px-6 py-3 rounded-xl bg-white border border-black text-black font-medium text-center hover:bg-black hover:text-white transition-colors"
           >
             Nurse Dashboard
           </Link>
 
           <Link
-            href="/admin_dashboard"
+            href="dashboard/admin"
             className="px-6 py-3 rounded-xl bg-white border border-black text-black font-medium text-center hover:bg-black hover:text-white transition-colors"
           >
             Admin Dashboard
