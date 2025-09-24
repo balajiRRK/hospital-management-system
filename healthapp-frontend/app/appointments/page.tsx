@@ -1,5 +1,5 @@
-import CreateAppointmentForm from './CreateAppointmentForm';
 import AppointmentList from './AppointmentList';
+import CreateAppointmentForm from './CreateAppointmentForm';
 
 export default function AppointmentsPage() {
   // Replace with actual patient ID from auth/session

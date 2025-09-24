@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+
 import { getAppointmentsForPatient } from './appointmentApi';
 
 export default function AppointmentList({ patientId }: { patientId: number }) {
