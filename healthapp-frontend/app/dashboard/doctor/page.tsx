@@ -10,7 +10,7 @@ import {
   Patient,
   History,
   Doctor,
-} from "../data/mock_data";
+} from "../../data/mock_data";
 
 export default function DoctorDashboard() {
   const [currentDoctor, setCurrentDoctor] = useState<Doctor>(doctors[0]);
@@ -74,7 +74,7 @@ export default function DoctorDashboard() {
   return (
     <div className="p-6">
       <Link
-        href="/"
+        href="/public"
         className="mb-4 inline-block px-4 py-2 border rounded bg-black text-white hover:bg-gray-800"
       >
         Back to Home

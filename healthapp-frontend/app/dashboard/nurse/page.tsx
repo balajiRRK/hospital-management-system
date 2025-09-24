@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { patients, nurses, history, Patient, Nurse } from "../data/mock_data";
+import { patients, nurses, history, Patient, Nurse } from "../../data/mock_data";
 import Link from "next/link";
 
 export default function NurseDashboardPage() {
@@ -61,7 +61,7 @@ export default function NurseDashboardPage() {
 
   return (
     <div className="p-6">
-      <Link href="/" className="mb-4 inline-block px-4 py-2 border rounded">
+      <Link href="/public" className="mb-4 inline-block px-4 py-2 border rounded">
         Back to Home
       </Link>
       <h1 className="text-2xl font-semibold mb-4">Nurse Dashboard</h1>
