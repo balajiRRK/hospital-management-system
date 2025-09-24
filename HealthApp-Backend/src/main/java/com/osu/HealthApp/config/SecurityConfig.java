@@ -41,8 +41,7 @@ public class SecurityConfig {
                 }))
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        //.ignoringRequestMatchers("/api/auth/**") // auth endpoints are stateless (Restore when removing below)
-						.ignoringRequestMatchers("/api/auth/**") // !!! WARNING: INSECURE, FOR TESTING ONLY, REMOVE AND RESTORE ABOVEs BEFORE DEPLOYMENT !!!
+                        .ignoringRequestMatchers("/api/auth/**") // auth endpoints are stateless
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
@@ -51,7 +50,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/doctor/**").hasAnyRole("DOCTOR","ADMIN")
                         .requestMatchers("/api/nurse/**").hasAnyRole("NURSE","ADMIN")
                         .requestMatchers("/api/patient/**").hasAnyRole("PATIENT","ADMIN")
-                        .requestMatchers("/api/appointments/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authProvider)

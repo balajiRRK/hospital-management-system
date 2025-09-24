@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
@@ -17,6 +19,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.stream.Stream;
+import java.util.Collection;
 import java.util.Optional;
 
 /**
@@ -47,7 +51,8 @@ public class JwtCookieAuthFilter extends OncePerRequestFilter {
                     String email = jws.getPayload().getSubject();
 
                     UserDetails ud = uds.loadUserByUsername(email);
-                    var auth = new UsernamePasswordAuthenticationToken(ud, null, ud.getAuthorities());
+					Collection<? extends GrantedAuthority> authorities = Stream.concat(ud.getAuthorities().stream(), Stream.of(new SimpleGrantedAuthority("CONTEXT_"+ jws.getPayload().get("context")))).toList();
+                    var auth = new UsernamePasswordAuthenticationToken(ud, null, authorities);
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(req));
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 } catch (io.jsonwebtoken.JwtException ignored) {

@@ -8,6 +8,7 @@ import com.osu.HealthApp.dtos.RegisterRequest;
 import com.osu.HealthApp.models.RefreshToken;
 import com.osu.HealthApp.models.Role;
 import com.osu.HealthApp.models.User;
+import com.osu.HealthApp.models.Context;
 import com.osu.HealthApp.repo.RefreshTokenRepository;
 import com.osu.HealthApp.repo.UserRepository;
 import io.jsonwebtoken.Claims;
@@ -61,10 +62,10 @@ public class AuthService {
         u.getRoles().add(Role.PATIENT); // safe default
         users.save(u);
 
-        return issueTokens(u, HttpStatus.CREATED);
+        return issueTokens(u, Context.PATIENT, HttpStatus.CREATED);
     }
 
-    public ResponseEntity<AuthResponse> login(LoginRequest req) {
+    public ResponseEntity<AuthResponse> login(LoginRequest req, Context c) {
         String email = req.email().trim().toLowerCase();
 
         var u = users.findByEmail(email)
@@ -72,7 +73,10 @@ public class AuthService {
         if (!encoder.matches(req.password(), u.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials");
         }
-        return issueTokens(u, HttpStatus.OK);
+		if (c.equals(Context.STAFF) && u.getRoles().size() == 1 && u.getRoles().contains(Role.PATIENT)) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not staff");
+		}
+        return issueTokens(u, c, HttpStatus.OK);
     }
 
     /** Rotate refresh token and issue new cookies. */
@@ -89,6 +93,12 @@ public class AuthService {
 
         String jti = jws.getPayload().getId();
         String email = jws.getPayload().getSubject();
+		Context context = null;
+		try {
+			context = Context.valueOf(jws.getPayload().get("context").toString());
+		} catch (IllegalArgumentException e) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
+		}
 
         var record = rts.findByJtiAndRevokedFalse(jti)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token revoked/unknown"));
@@ -104,7 +114,7 @@ public class AuthService {
         record.setRevoked(true);
         rts.save(record);
 
-        return issueTokens(record.getUser(), HttpStatus.OK);
+        return issueTokens(record.getUser(), context, HttpStatus.OK);
     }
 
     /** Logout: revoke all refresh tokens & clear cookies. */
@@ -121,10 +131,10 @@ public class AuthService {
                 .build();
     }
 
-    private ResponseEntity<AuthResponse> issueTokens(User u, HttpStatus status) {
-        String access = jwt.generateAccessToken(u);
+    private ResponseEntity<AuthResponse> issueTokens(User u, Context c, HttpStatus status) {
+        String access = jwt.generateAccessToken(u, c);
         String jti = UUID.randomUUID().toString();
-        String refresh = jwt.generateRefreshToken(u, jti);
+        String refresh = jwt.generateRefreshToken(u, c, jti);
 
         var rt = new RefreshToken();
         rt.setJti(jti);
