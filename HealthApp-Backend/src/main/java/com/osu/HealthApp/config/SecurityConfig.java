@@ -43,7 +43,6 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationProvider authProvider) throws Exception {
-        // Read allowed origins from env, fallback to localhost:3000 for dev
         String originsProp = System.getenv().getOrDefault(
                 "CORS_ALLOWED_ORIGINS",
                 System.getProperty("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
@@ -66,46 +65,32 @@ public class SecurityConfig {
                     return c;
                 }))
 
-                // No CSRF for stateless JSON API
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // Return 401 when unauthenticated user hits protected endpoint
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
 
                 // authorization rules
                 .authorizeHttpRequests(auth -> auth
-                        // allow CORS preflight
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // public auth/error endpoints
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // public: list of doctors (used by scheduler)
                         .requestMatchers(HttpMethod.GET, "/api/doctor/doctors").permitAll()
-
-                        // public: doctor availability (wildcard segment)
                         .requestMatchers(HttpMethod.GET, "/api/appointments/doctor/*/availability").permitAll()
-
-                        // logged-in user profile
                         .requestMatchers("/api/me").authenticated()
-
-                        // Staff/admin areas (require both role + staff context)
                         .requestMatchers("/api/admin/**")
                         .access(allOf(hasRole("ADMIN"), hasAuthority("CONTEXT_STAFF")))
                         .requestMatchers("/api/doctor/**")
                         .access(allOf(hasAnyRole("DOCTOR", "ADMIN"), hasAuthority("CONTEXT_STAFF")))
                         .requestMatchers("/api/nurse/**")
                         .access(allOf(hasAnyRole("NURSE", "ADMIN"), hasAuthority("CONTEXT_STAFF")))
-
-                        // patient endpoints: either patient+patient-context OR admin+staff-context
                         .requestMatchers("/api/patient/**")
                         .access(anyOf(
                                 allOf(hasRole("PATIENT"), hasAuthority("CONTEXT_PATIENT")),
                                 allOf(hasRole("ADMIN"), hasAuthority("CONTEXT_STAFF"))
                         ))
 
-                        // Appointments CRUD: patients (patient context) or staff (doctor/nurse context)
+                        // Appointments CRUD
                         .requestMatchers(HttpMethod.POST, "/api/appointments/**")
                         .access(anyOf(
                                 allOf(hasAnyRole("DOCTOR", "NURSE"), hasAuthority("CONTEXT_STAFF")),
@@ -126,8 +111,6 @@ public class SecurityConfig {
                                 allOf(hasAnyRole("DOCTOR", "NURSE"), hasAuthority("CONTEXT_STAFF")),
                                 allOf(hasRole("PATIENT"), hasAuthority("CONTEXT_PATIENT"))
                         ))
-
-                        // Reads: doctor lists (staff) and patient reads (staff or self)
                         .requestMatchers(HttpMethod.GET, "/api/appointments/doctor/**")
                         .access(allOf(hasAnyRole("DOCTOR", "NURSE", "ADMIN"), hasAuthority("CONTEXT_STAFF")))
                         .requestMatchers(HttpMethod.GET, "/api/appointments/patient/**")
@@ -140,14 +123,9 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // convert JWT cookie to Authentication before UsernamePasswordAuthenticationFilter
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-
-                // disable form/basic auth for API only
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
-
-                // plug in our AuthenticationProvider
                 .authenticationProvider(authProvider);
 
         return http.build();
