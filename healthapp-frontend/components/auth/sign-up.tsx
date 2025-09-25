@@ -16,7 +16,7 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = email.trim().length > 3 && password.trim().length >= 6;
+  const canSubmit = email.trim().length > 3 && password.trim().length >= 8;
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -30,22 +30,25 @@ export default function SignUp() {
       if (!base) throw new Error('NEXT_PUBLIC_API_URL is not set.');
 
       await axios.post(
-        `${base}/auth/signup`,
+        `${base}/api/auth/register`,
         { email: email.trim(), password: password.trim() },
         { withCredentials: true, headers: { 'Content-Type': 'application/json' } },
       );
 
-      // success -> send them on their way to the login page
-      router.push('/Sign-up');
-      // chat had to help me with the erro handling
+      // success -> go to sign-in
+      router.push('/Sign-in');
     } catch (err: unknown) {
       let msg = 'Sign up failed. Please try again.';
       if (axios.isAxiosError(err)) {
-        msg =
-          (err.response?.data as { message?: string } | undefined)?.message ||
-          err.response?.statusText ||
-          err.message ||
-          msg;
+        if (err.response?.status === 409) {
+          msg = 'That email is already in use. Try signing in or use another email.';
+        } else {
+          msg =
+            (err.response?.data as { message?: string } | undefined)?.message ||
+            err.response?.statusText ||
+            err.message ||
+            msg;
+        }
       } else if (err instanceof Error) {
         msg = err.message || msg;
       }
@@ -76,7 +79,7 @@ export default function SignUp() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          {/*  PAssword field  */}
+          {/*  password field  */}
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
