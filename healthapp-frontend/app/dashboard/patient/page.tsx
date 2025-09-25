@@ -1,7 +1,7 @@
 'use client';
 
-import AppointmentScheduler from '@/app/appointments/AppointmentScheduler';
-import MyAppointmentsList from '@/app/appointments/MyAppointmentsList';
+import AppointmentScheduler from '@/app/appointments/_components/AppointmentScheduler';
+import MyAppointmentsList from '@/app/appointments/_components/MyAppointmentsList';
 import { useAuth } from '@/app/providers/AuthProvider';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -11,7 +11,7 @@ export default function PatientDashboardPage() {
   return (
     <div className="">
       <div className="space-y-3 md:col-span-1">
-        <h2 className="text-base font-semibold">Book an Appointment</h2>
+        <h2 className="m-2 flex justify-center text-base font-semibold">Book an Appointment</h2>
         <AppointmentScheduler />
       </div>
 

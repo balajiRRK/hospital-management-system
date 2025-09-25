@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { patients, nurses, history, Patient, Nurse } from '../../data/mock_data';
 import Link from 'next/link';
+import { useState } from 'react';
+
+import { history, Nurse, nurses, Patient, patients } from '../../data/mock_data';
 
 export default function NurseDashboardPage() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(patients[0]);

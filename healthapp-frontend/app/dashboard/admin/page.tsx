@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { doctors, nurses, patients } from '../../data/mock_data';
 import Link from 'next/link';
+import { useState } from 'react';
+
+import { doctors, nurses, patients } from '../../data/mock_data';
 
 export default function AdminDashboardPage() {
   const [newDoctorName, setNewDoctorName] = useState('');

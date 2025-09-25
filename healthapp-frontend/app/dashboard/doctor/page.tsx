@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+
 import {
-  doctors,
-  patients as initialPatients,
   appointments,
+  Doctor,
+  doctors,
+  History,
   history,
   Patient,
-  History,
-  Doctor,
+  patients as initialPatients,
 } from '../../data/mock_data';
 
 export default function DoctorDashboard() {

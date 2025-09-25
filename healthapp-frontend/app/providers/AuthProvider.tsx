@@ -2,7 +2,7 @@
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-import { apiLogout, getMe } from '@/app/appointments/api';
+import { apiLogout, getMe } from '@/lib/api';
 
 type User = { id: number; email: string; name?: string; authorities?: string[] };
 
