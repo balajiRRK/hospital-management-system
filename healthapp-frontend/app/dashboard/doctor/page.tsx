@@ -1,259 +1,182 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import {
-  doctors,
-  patients as initialPatients,
-  appointments,
-  history,
-  Patient,
-  History,
-  Doctor,
-} from '../../data/mock_data';
+import { useEffect, useState } from 'react';
+import { User, Calendar as CalendarIcon, LayoutDashboard, ClipboardCheck } from 'lucide-react';
+import { getMe, MeResponse, apiLogout } from '../../appointments/api';
+import { useRouter } from 'next/navigation';
+import { Calendar } from '@/components/ui/calendar';
 
 export default function DoctorDashboard() {
-  const [currentDoctor, setCurrentDoctor] = useState<Doctor>(doctors[0]);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [visitResultInput, setVisitResultInput] = useState('');
   const [activeTab, setActiveTab] = useState('Dashboard');
+  const [selectedPatient, setSelectedPatient] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [doctor, setDoctor] = useState<MeResponse | null>(null);
+  const router = useRouter();
+
+  const tabs = [
+    { name: 'Dashboard', icon: LayoutDashboard },
+    { name: 'Appointments', icon: CalendarIcon },
+    { name: 'Results', icon: ClipboardCheck },
+    { name: 'Patients', icon: User },
+  ];
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem('patients') || '[]');
-    if (saved.length) setPatients(saved);
-    else setPatients(initialPatients);
+    async function fetchDoctor() {
+      try {
+        const me = await getMe();
+        setDoctor(me);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchDoctor();
   }, []);
 
-  const doctorPatients = patients.filter((p) => p.doctorId === currentDoctor.id);
-  const doctorAppointments = appointments.filter((a) =>
-    doctorPatients.some((p) => p.id === a.patientId),
-  );
-  const pendingAppointments = doctorAppointments.filter((a) => a.status === 'Pending');
-
-  const handlePatientClick = (p: Patient) => setSelectedPatient(p);
-
-  const handleVisitResultSubmit = () => {
-    if (!selectedPatient || !visitResultInput.trim()) return;
-    const today = new Date().toISOString().split('T')[0];
-    const existingIndex = history.findIndex(
-      (h) => h.patientId === selectedPatient.id && h.date === today,
-    );
-    if (existingIndex !== -1) {
-      history[existingIndex].visitResult = visitResultInput.trim();
-    } else {
-      history.push({
-        patientId: selectedPatient.id,
-        date: today,
-        visit: 'Doctor Visit',
-        notes: '',
-        visitResult: visitResultInput.trim(),
-      });
-    }
-    setVisitResultInput('');
-  };
-
-  const handleStatusChange = (apptId: number, status: 'Pending' | 'Confirmed') => {
-    const index = appointments.findIndex((a) => a.id === apptId);
-    if (index !== -1) {
-      appointments[index].status = status;
+  const handleLogout = async () => {
+    try {
+      await apiLogout();
+      router.push('/Sign-in');
+    } catch (err) {
+      console.error(err);
+      alert('Logout failed. Please try again.');
     }
   };
-
-  const patientHistory: History[] = selectedPatient
-    ? history.filter((h) => h.patientId === selectedPatient.id)
-    : [];
 
   return (
-    <div className="p-6">
-      <Link
-        href="/"
-        className="mb-4 inline-block rounded border bg-black px-4 py-2 text-white hover:bg-gray-800"
-      >
-        Back to Home
-      </Link>
-
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-semibold">Doctor: {currentDoctor.name}</h2>
-        <select
-          className="border px-2 py-1"
-          value={currentDoctor.id}
-          onChange={(e) => {
-            const doc = doctors.find((d) => d.id === parseInt(e.target.value));
-            if (doc) {
-              setCurrentDoctor(doc);
-              setSelectedPatient(null);
-            }
-          }}
-        >
-          {doctors.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
+    <div className="flex min-h-screen overflow-y-auto bg-gray-50 dark:bg-gray-900">
+      <aside className="w-64 border-r border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-500 text-lg font-bold text-white">
+            {doctor?.email?.charAt(0).toUpperCase() || 'D'}
+          </div>
+          <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {doctor?.email || 'Loading...'}
+          </span>
+        </div>
+        <nav className="space-y-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.name}
+              onClick={() => {
+                setActiveTab(tab.name);
+                setSelectedPatient(null);
+              }}
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left ${
+                activeTab === tab.name
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+              }`}
+            >
+              <tab.icon size={18} /> {tab.name}
+            </button>
           ))}
-        </select>
-      </div>
+        </nav>
+      </aside>
 
-      <div className="mb-6 flex space-x-2">
-        <button
-          className={`rounded border px-4 py-2 ${
-            activeTab === 'Dashboard' ? 'border-black font-semibold' : 'border-gray-400'
-          }`}
-          onClick={() => setActiveTab('Dashboard')}
-        >
-          Dashboard
-        </button>
-        <button
-          className={`rounded border px-4 py-2 ${
-            activeTab === 'Patients' ? 'border-black font-semibold' : 'border-gray-400'
-          }`}
-          onClick={() => setActiveTab('Patients')}
-        >
-          Patients
-        </button>
-        <button
-          className={`rounded border px-4 py-2 ${
-            activeTab === 'Appointments' ? 'border-black font-semibold' : 'border-gray-400'
-          }`}
-          onClick={() => setActiveTab('Appointments')}
-        >
-          Appointments
-        </button>
-      </div>
+      <div className="flex flex-1 flex-col">
+        <header className="flex items-center justify-between border-b border-gray-200 bg-white px-8 py-4 dark:border-gray-700 dark:bg-gray-800">
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{activeTab}</h1>
+          <button
+            onClick={handleLogout}
+            className="rounded bg-blue-500 px-3 py-1 text-white hover:bg-blue-700"
+          >
+            Logout
+          </button>
+        </header>
 
-      <hr className="border-gray-300" />
-
-      {activeTab === 'Dashboard' && (
-        <div className="mt-6 space-y-6">
-          <div>
-            <h2 className="mb-2 text-lg font-semibold">Patients with Pending Appointments</h2>
-            <ul className="w-64 space-y-1">
-              {pendingAppointments.map((a) => {
-                const patient = doctorPatients.find((p) => p.id === a.patientId);
-                if (!patient) return null;
-                return (
-                  <li key={a.id}>
-                    <button
-                      className="w-full rounded border px-3 py-1 text-left"
-                      onClick={() => handlePatientClick(patient)}
-                    >
-                      {patient.name} - {patient.code} ({a.time})
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-
-            {selectedPatient && (
-              <div className="mt-4">
-                <input
-                  type="text"
-                  placeholder="Enter visit result"
-                  className="mb-2 w-full border px-2 py-1"
-                  value={visitResultInput}
-                  onChange={(e) => setVisitResultInput(e.target.value)}
-                />
-                <button className="rounded border px-4 py-2" onClick={handleVisitResultSubmit}>
-                  Submit
-                </button>
-              </div>
-            )}
-          </div>
-
-          <hr className="border-gray-300" />
-
-          <div>
-            <h2 className="mb-2 text-lg font-semibold">
-              Medical History{' '}
-              {selectedPatient ? `(Patient: ${selectedPatient.name})` : '(Select a patient)'}
-            </h2>
-            {selectedPatient && patientHistory.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="min-w-full border border-black">
-                  <thead>
-                    <tr>
-                      <th className="border px-4 py-2">Date</th>
-                      <th className="border px-4 py-2">Nurse Data</th>
-                      <th className="border px-4 py-2">Visit Reason</th>
-                      <th className="border px-4 py-2">Visit Result</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {patientHistory.map((h, idx) => (
-                      <tr key={idx}>
-                        <td className="border px-4 py-2">{h.date}</td>
-                        <td className="border px-4 py-2">{h.notes}</td>
-                        <td className="border px-4 py-2">{h.visit}</td>
-                        <td className="border px-4 py-2">{h.visitResult}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-gray-500">No history to display</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'Patients' && (
-        <div className="mt-6">
-          <h2 className="mb-2 text-lg font-semibold">All Patients</h2>
-          <ul className="w-64 space-y-1">
-            {doctorPatients.map((p) => (
-              <li key={p.id} className="rounded border px-3 py-1">
-                {p.name} - {p.code}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {activeTab === 'Appointments' && (
-        <div className="mt-6">
-          <h2 className="mb-2 text-lg font-semibold">Appointments</h2>
-          {doctorAppointments.length ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full border border-black">
-                <thead>
-                  <tr>
-                    <th className="border px-4 py-2">Patient</th>
-                    <th className="border px-4 py-2">Time</th>
-                    <th className="border px-4 py-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {doctorAppointments.map((a) => {
-                    const patient = doctorPatients.find((p) => p.id === a.patientId);
-                    if (!patient) return null;
-                    return (
-                      <tr key={a.id}>
-                        <td className="border px-4 py-2">{patient.name}</td>
-                        <td className="border px-4 py-2">{a.time}</td>
-                        <td className="border px-4 py-2">
-                          <select
-                            value={a.status}
-                            onChange={(e) =>
-                              handleStatusChange(a.id, e.target.value as 'Pending' | 'Confirmed')
-                            }
-                            className="border px-1 py-0.5"
-                          >
-                            <option value="Pending">Pending</option>
-                            <option value="Confirmed">Confirmed</option>
-                          </select>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+        {activeTab === 'Dashboard' && (
+          <main className="grid grid-cols-1 gap-6 p-8 md:grid-cols-2">
+            <div className="rounded-lg bg-white p-6 shadow md:col-span-2 dark:bg-gray-800">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Pending Appointments
+              </h2>
+              <p className="text-gray-500">No pending appointments today</p>
             </div>
-          ) : (
-            <p className="text-gray-500">No appointments scheduled</p>
-          )}
-        </div>
-      )}
+          </main>
+        )}
+
+        {activeTab === 'Appointments' && (
+          <main className="flex gap-6 p-8">
+            <div className="w-1/3 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+              <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Select Date
+              </h2>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="rounded-lg border p-2"
+              />
+            </div>
+            <div className="flex-1 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Appointments
+              </h2>
+              <p className="text-gray-500">
+                {selectedDate
+                  ? `No appointments on ${selectedDate.toLocaleDateString()}`
+                  : 'Select a date to view appointments'}
+              </p>
+            </div>
+          </main>
+        )}
+
+        {activeTab === 'Results' && (
+          <main className="grid grid-cols-1 gap-6 p-8">
+            <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Select Patient
+              </h2>
+              <select className="w-full rounded border bg-gray-50 px-2 py-2 text-gray-900 dark:bg-gray-700 dark:text-gray-100">
+                <option>-- Select --</option>
+              </select>
+            </section>
+            {selectedPatient && (
+              <>
+                <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+                  <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Enter Visit Result
+                  </h2>
+                  <textarea className="mb-2 w-full rounded border bg-gray-50 px-2 py-3 text-gray-900 dark:bg-gray-700 dark:text-gray-100" />
+                  <div className="flex gap-2">
+                    <button className="rounded border bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+                      Save Result
+                    </button>
+                    <button className="rounded border bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+                      Complete Appointment
+                    </button>
+                  </div>
+                </section>
+                <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+                  <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Medical History
+                  </h2>
+                  <p className="text-gray-500">No history available</p>
+                </section>
+              </>
+            )}
+          </main>
+        )}
+
+        {activeTab === 'Patients' && (
+          <main className="flex gap-6 p-8">
+            <div className="max-h-[calc(100vh-4rem)] w-1/3 overflow-y-auto rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                All Patients
+              </h2>
+              <ul className="space-y-3">
+                <li className="flex cursor-pointer justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-700">
+                  <span className="text-gray-700 dark:text-gray-300">Patient Name</span>
+                  <span className="text-sm text-gray-500">ID: 1</span>
+                </li>
+              </ul>
+            </div>
+            <div className="flex-1 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+              <p className="text-gray-500">Select a patient to view details</p>
+            </div>
+          </main>
+        )}
+      </div>
     </div>
   );
 }
