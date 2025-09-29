@@ -50,6 +50,26 @@ export async function getAppointmentsForPatient(patientId: number): Promise<Appo
   return json<AppointmentResponse[]>(res);
 }
 
+// Same function as above, but gets appointments for a specific doctor (based on doctor's id)
+export async function getAppointmentsForDoctor(doctorId: number): Promise<AppointmentResponse[]> {
+  const res = await fetch(`${API_BASE}/api/appointments/doctor/${doctorId}`, {
+    credentials: 'include',
+  });
+  return json<AppointmentResponse[]>(res);
+}
+
+export type PatientsForDoctorResponse = {
+  me: MeResponse;
+  patients: { id: number; email: string; name?: string }[];
+};
+
+export async function listPatientsForDoctor(doctorId: number): Promise<PatientsForDoctorResponse> {
+  const res = await fetch(`${API_BASE}/api/appointments/doctor/${doctorId}/patients`, {
+    credentials: 'include',
+  });
+  return json<PatientsForDoctorResponse>(res);
+}
+
 // BACKEND: POST /api/appointments
 export async function createAppointment(input: {
   doctorId: number;

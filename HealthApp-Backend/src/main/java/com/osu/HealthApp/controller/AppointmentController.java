@@ -33,6 +33,11 @@ public class AppointmentController {
         return appointmentService.getAppointmentsForDoctor(doctorId);
     }
 
+    @GetMapping("/doctor/{doctorId}/patients")
+    public List<User> getPatientsForDoctor(@PathVariable Long doctorId) {
+        return appointmentService.getPatientsForDoctor(doctorId);
+    }
+
     @GetMapping("/doctor/{doctorId}/availability")
     public DoctorAvailabilityResponse availability(
             @PathVariable Long doctorId,

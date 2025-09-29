@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { User, Calendar as CalendarIcon, LayoutDashboard, ClipboardCheck } from 'lucide-react';
-import { getMe, MeResponse, apiLogout } from '../../appointments/api';
+import {
+  getMe,
+  MeResponse,
+  apiLogout,
+  getAppointmentsForDoctor,
+  AppointmentResponse,
+  listPatientsForDoctor,
+} from '../../appointments/api';
 import { useRouter } from 'next/navigation';
 import { Calendar } from '@/components/ui/calendar';
 
@@ -11,6 +18,8 @@ export default function DoctorDashboard() {
   const [selectedPatient, setSelectedPatient] = useState<number | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [doctor, setDoctor] = useState<MeResponse | null>(null);
+  const [appointments, setAppointments] = useState<AppointmentResponse[]>([]);
+  const [patients, setPatients] = useState<{ id: number; email: string; name?: string }[]>([]);
   const router = useRouter();
 
   const tabs = [
@@ -25,12 +34,31 @@ export default function DoctorDashboard() {
       try {
         const me = await getMe();
         setDoctor(me);
+        const doctorAppointments = await getAppointmentsForDoctor(me.id);
+        setAppointments(doctorAppointments);
       } catch (err) {
         console.error(err);
       }
     }
     fetchDoctor();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'Patients' && doctor) {
+      const currentDoctor = doctor;
+      async function fetchDoctorPatients() {
+        try {
+          const response = await listPatientsForDoctor(currentDoctor.id);
+          setDoctor(response.me);
+          setPatients(response.patients);
+        } catch (err) {
+          console.error('Error fetching patients:', err);
+        }
+      }
+
+      fetchDoctorPatients();
+    }
+  }, [activeTab, doctor]);
 
   const handleLogout = async () => {
     try {
@@ -41,6 +69,9 @@ export default function DoctorDashboard() {
       alert('Logout failed. Please try again.');
     }
   };
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const todaysAppointments = appointments.filter((a) => a.startTime.startsWith(todayStr));
 
   return (
     <div className="flex min-h-screen overflow-y-auto bg-gray-50 dark:bg-gray-900">
@@ -88,9 +119,33 @@ export default function DoctorDashboard() {
           <main className="grid grid-cols-1 gap-6 p-8 md:grid-cols-2">
             <div className="rounded-lg bg-white p-6 shadow md:col-span-2 dark:bg-gray-800">
               <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Pending Appointments
+                Pending Appointments Today
               </h2>
-              <p className="text-gray-500">No pending appointments today</p>
+              {todaysAppointments.length > 0 ? (
+                <ul className="space-y-3">
+                  {todaysAppointments.map((app) => (
+                    <li
+                      key={app.id}
+                      className="rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                    >
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{app.reason}</p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(app.startTime).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        -{' '}
+                        {new Date(app.endTime).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500">No pending appointments today</p>
+              )}
             </div>
           </main>
         )}
@@ -112,11 +167,43 @@ export default function DoctorDashboard() {
               <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Appointments
               </h2>
-              <p className="text-gray-500">
-                {selectedDate
-                  ? `No appointments on ${selectedDate.toLocaleDateString()}`
-                  : 'Select a date to view appointments'}
-              </p>
+              {selectedDate ? (
+                (() => {
+                  const dateStr = selectedDate.toISOString().split('T')[0];
+                  const filtered = appointments.filter((a) => a.startTime.startsWith(dateStr));
+                  return filtered.length > 0 ? (
+                    <ul className="space-y-3">
+                      {filtered.map((app) => (
+                        <li
+                          key={app.id}
+                          className="rounded-lg border border-gray-200 p-3 dark:border-gray-700"
+                        >
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {app.reason}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            {new Date(app.startTime).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}{' '}
+                            -{' '}
+                            {new Date(app.endTime).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-gray-500">
+                      No appointments on {selectedDate.toLocaleDateString()}
+                    </p>
+                  );
+                })()
+              ) : (
+                <p className="text-gray-500">Select a date to view appointments</p>
+              )}
             </div>
           </main>
         )}
@@ -162,13 +249,23 @@ export default function DoctorDashboard() {
           <main className="flex gap-6 p-8">
             <div className="max-h-[calc(100vh-4rem)] w-1/3 overflow-y-auto rounded-lg bg-white p-6 shadow dark:bg-gray-800">
               <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                All Patients
+                Patients
               </h2>
               <ul className="space-y-3">
-                <li className="flex cursor-pointer justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-700">
-                  <span className="text-gray-700 dark:text-gray-300">Patient Name</span>
-                  <span className="text-sm text-gray-500">ID: 1</span>
-                </li>
+                {patients.length > 0 ? (
+                  patients.map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex cursor-pointer justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-700"
+                      onClick={() => setSelectedPatient(p.id)}
+                    >
+                      <span className="text-gray-700 dark:text-gray-300">{p.name || p.email}</span>
+                      <span className="text-sm text-gray-500">ID: {p.id}</span>
+                    </li>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No patients with appointments</p>
+                )}
               </ul>
             </div>
             <div className="flex-1 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
