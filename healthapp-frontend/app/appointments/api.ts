@@ -4,6 +4,7 @@ export type MeResponse = { id: number; email: string; name?: string };
 export type Doctor = { id: number; email: string; name?: string };
 export type AppointmentResponse = {
   id: number;
+  patientId: number; 
   doctorId: number;
   doctorName?: string;
   startTime: string;
@@ -50,29 +51,44 @@ export async function getAppointmentsForPatient(patientId: number): Promise<Appo
   return json<AppointmentResponse[]>(res);
 }
 
-// Same function as above, but gets appointments for a specific doctor (based on doctor's id)
-export async function getAppointmentsForDoctor(doctorId: number): Promise<AppointmentResponse[]> {
+// get appointments for a specific doctor
+export async function getAppointmentsForDoctor(
+  doctorId: number,
+): Promise<AppointmentResponse[]> {
   const res = await fetch(`${API_BASE}/api/appointments/doctor/${doctorId}`, {
     credentials: 'include',
   });
   return json<AppointmentResponse[]>(res);
 }
 
-export type PatientsForDoctorResponse = {
-  me: MeResponse;
-  patients: { id: number; email: string; name?: string }[];
-};
+// get unique patients from those appointments
+export async function getPatientsForDoctorFromAppointments(
+  doctorId: number,
+): Promise<number[]> {
+  const appointments = await getAppointmentsForDoctor(doctorId);
 
-export async function listPatientsForDoctor(doctorId: number): Promise<PatientsForDoctorResponse> {
-  const res = await fetch(`${API_BASE}/api/appointments/doctor/${doctorId}/patients`, {
+  const patientIds = Array.from(new Set(appointments.map((a) => a.patientId)));
+
+  return patientIds;
+}
+
+export async function getPatientById(patientId: number): Promise<MeResponse> {
+  const res = await fetch(`${API_BASE}/api/users/${patientId}`, {
     credentials: 'include',
   });
-  return json<PatientsForDoctorResponse>(res);
+  return json<MeResponse>(res);
 }
+
+export async function getPatientEmail(patientId: number): Promise<string> {
+  const patient = await getPatientById(patientId);
+  return patient.email;
+}
+
 
 // BACKEND: POST /api/appointments
 export async function createAppointment(input: {
   doctorId: number;
+  patientId: number;  
   startTime: string;
   endTime: string;
   reason: string;
@@ -85,6 +101,7 @@ export async function createAppointment(input: {
   });
   await json(res);
 }
+
 
 export async function apiLogout(): Promise<void> {
   const res = await fetch(`${API_BASE}/api/auth/logout`, {

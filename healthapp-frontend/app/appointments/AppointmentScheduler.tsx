@@ -98,6 +98,8 @@ export default function AppointmentScheduler() {
       const end = new Date(start.getTime() + 90 * 60 * 1000); // 90 minutes
 
       await createAppointment({
+      
+        patientId: me!.id,
         doctorId: doctorId!,
         startTime: start.toISOString(),
         endTime: end.toISOString(),
