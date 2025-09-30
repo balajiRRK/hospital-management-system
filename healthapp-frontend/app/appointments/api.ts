@@ -84,6 +84,15 @@ export async function getPatientEmail(patientId: number): Promise<string> {
   return patient.email;
 }
 
+export async function getUserById(userId: number): Promise<MeResponse> {
+  const res = await fetch(`${API_BASE}/api/users/${userId}`, { credentials: 'include' });
+  return json<MeResponse>(res);
+}
+
+export async function getUserEmailById(userId: number): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/users/${userId}/email`, { credentials: 'include' });
+  return json<string>(res);
+}
 
 // BACKEND: POST /api/appointments
 export async function createAppointment(input: {

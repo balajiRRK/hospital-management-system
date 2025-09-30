@@ -20,12 +20,15 @@ import { Calendar } from "@/components/ui/calendar";
 export default function NurseDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
   const [selectedPatient, setSelectedPatient] = useState<number | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    new Date()
+  );
   const [nurse, setNurse] = useState<MeResponse | null>(null);
   const [appointments, setAppointments] = useState<AppointmentResponse[]>([]);
   const [patients, setPatients] = useState<{ id: number }[]>([]);
-  const [patientEmails, setPatientEmails] = useState<Record<number, string>>({});
-  
+  const [patientEmails, setPatientEmails] = useState<Record<number, string>>(
+    {}
+  );
   const [visitReason, setVisitReason] = useState("");
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
@@ -37,15 +40,15 @@ export default function NurseDashboard() {
   const tabs = [
     { name: "Dashboard", icon: LayoutDashboard },
     { name: "Appointments", icon: CalendarIcon },
-    { name: "Patients", icon: User },
     { name: "Patient Data", icon: ClipboardCheck },
+    { name: "Patients", icon: User },
   ];
 
   useEffect(() => {
     async function fetchNurse() {
       const me = await getMe();
       setNurse(me);
-      const nurseAppointments = await getAppointmentsForDoctor(me.id); 
+      const nurseAppointments = await getAppointmentsForDoctor(me.id);
       setAppointments(nurseAppointments);
     }
     fetchNurse();
@@ -65,11 +68,30 @@ export default function NurseDashboard() {
   }, [activeTab, nurse]);
 
   useEffect(() => {
-    async function fetchEmails() {
-      const emails: Record<number, string> = {};
+    if (appointments.length === 0) return;
+
+    async function fetchPatientEmails() {
+      const emails = { ...patientEmails };
+      const uniqueIds = Array.from(
+        new Set(appointments.map((a) => a.patientId))
+      );
+      await Promise.all(
+        uniqueIds.map(async (id) => {
+          if (!emails[id]) {
+            const res = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/api/users/${id}/email`,
+              {
+                credentials: "include",
+              }
+            );
+            emails[id] = await res.text();
+          }
+        })
+      );
       setPatientEmails(emails);
     }
-    if (appointments.length > 0) fetchEmails();
+
+    fetchPatientEmails();
   }, [appointments]);
 
   const handleLogout = async () => {
@@ -78,7 +100,14 @@ export default function NurseDashboard() {
   };
 
   const handleSubmitData = async () => {
-    if (!selectedPatient || !visitReason || !weight || !height || !bp || !nurseNotes) {
+    if (
+      !selectedPatient ||
+      !visitReason ||
+      !weight ||
+      !height ||
+      !bp ||
+      !nurseNotes
+    ) {
       alert("Please fill in all fields before submitting.");
       return;
     }
@@ -160,7 +189,6 @@ export default function NurseDashboard() {
           </button>
         </header>
 
-        {/* Dashboard */}
         {activeTab === "Dashboard" && (
           <main className="grid grid-cols-1 gap-6 p-8 md:grid-cols-2">
             <div className="rounded-lg bg-white p-6 shadow md:col-span-2 dark:bg-gray-800">
@@ -185,8 +213,8 @@ export default function NurseDashboard() {
                         {new Date(app.startTime).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
-                        })}{" "}
-                        -{" "}
+                        })}
+                        {" - "}
                         {new Date(app.endTime).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -202,7 +230,6 @@ export default function NurseDashboard() {
           </main>
         )}
 
-        {/* Appointments */}
         {activeTab === "Appointments" && (
           <main className="flex gap-6 p-8">
             <div className="w-1/3 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
@@ -238,14 +265,15 @@ export default function NurseDashboard() {
                           </p>
                           <p className="text-sm text-gray-500">
                             Patient ID: {app.patientId} <br />
-                            Email: {patientEmails[app.patientId] || "Loading..."}
+                            Email:{" "}
+                            {patientEmails[app.patientId] || "Loading..."}
                           </p>
                           <p className="text-sm text-gray-500">
                             {new Date(app.startTime).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
-                            })}{" "}
-                            -{" "}
+                            })}
+                            {" - "}
                             {new Date(app.endTime).toLocaleTimeString([], {
                               hour: "2-digit",
                               minute: "2-digit",
@@ -261,47 +289,14 @@ export default function NurseDashboard() {
                   );
                 })()
               ) : (
-                <p className="text-gray-500">Select a date to view appointments</p>
+                <p className="text-gray-500">
+                  Select a date to view appointments
+                </p>
               )}
             </div>
           </main>
         )}
 
-        {/* Patients */}
-        {activeTab === "Patients" && (
-          <main className="flex gap-6 p-8">
-            <div className="max-h-[calc(100vh-4rem)] w-1/3 overflow-y-auto rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Patients
-              </h2>
-              <ul className="space-y-3">
-                {patients.length > 0 ? (
-                  patients.map((p) => (
-                    <li
-                      key={p.id}
-                      className="flex cursor-pointer justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-700"
-                      onClick={() => setSelectedPatient(p.id)}
-                    >
-                      <span className="text-gray-700 dark:text-gray-300">
-                        Patient ID: {p.id}
-                      </span>
-                      <span className="text-gray-500">
-                        {patientEmails[p.id] || "Loading..."}
-                      </span>
-                    </li>
-                  ))
-                ) : (
-                  <p className="text-gray-500">No patients with appointments</p>
-                )}
-              </ul>
-            </div>
-            <div className="flex-1 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-              <p className="text-gray-500">Select a patient to view details</p>
-            </div>
-          </main>
-        )}
-
-        {/* Patient Data */}
         {activeTab === "Patient Data" && (
           <main className="grid grid-cols-1 gap-6 p-8">
             <section className="rounded-lg bg-white p-6 shadow dark:bg-gray-800">
@@ -365,6 +360,39 @@ export default function NurseDashboard() {
                 </button>
               </section>
             )}
+          </main>
+        )}
+
+        {activeTab === "Patients" && (
+          <main className="flex gap-6 p-8">
+            <div className="max-h-[calc(100vh-4rem)] w-1/3 overflow-y-auto rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Patients
+              </h2>
+              <ul className="space-y-3">
+                {patients.length > 0 ? (
+                  patients.map((p) => (
+                    <li
+                      key={p.id}
+                      className="flex cursor-pointer justify-between rounded-lg border border-gray-200 p-3 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-700"
+                      onClick={() => setSelectedPatient(p.id)}
+                    >
+                      <span className="text-gray-700 dark:text-gray-300">
+                        Patient ID: {p.id}
+                      </span>
+                      <span className="text-gray-500">
+                        {patientEmails[p.id] || "Loading..."}
+                      </span>
+                    </li>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No patients with appointments</p>
+                )}
+              </ul>
+            </div>
+            <div className="flex-1 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+              <p className="text-gray-500">Select a patient to view details</p>
+            </div>
           </main>
         )}
       </div>
