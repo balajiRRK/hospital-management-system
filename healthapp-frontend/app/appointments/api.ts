@@ -103,6 +103,13 @@ export async function createAppointment(input: {
 }
 
 
+export async function getAllAppointments(): Promise<AppointmentResponse[]> {
+  const res = await fetch(`${API_BASE}/api/appointments`, {
+    credentials: 'include',
+  });
+  return json<AppointmentResponse[]>(res);
+}
+
 export async function apiLogout(): Promise<void> {
   const res = await fetch(`${API_BASE}/api/auth/logout`, {
     method: 'POST',

@@ -19,6 +19,7 @@ import java.util.List;
 
 @Service
 public class AppointmentService {
+
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
 
@@ -38,7 +39,7 @@ public class AppointmentService {
     }
 
     /**
-     * Create a new appointment.
+     * Create a new appointment. Patients can only create for themselves
      * Patients can only create for themselves
      * Enforces exact 90 minutes and 15-minute buffer vs existing
      */
@@ -86,9 +87,9 @@ public class AppointmentService {
     }
 
     /**
-     * Update an appointment.
-     * Patients can only update their own, and cannot change doctor/patient
-     * Enforces exact 90 minutes and buffer policy exclude the same record
+     * Update an appointment. Patients can only update their own, and cannot
+     * change doctor/patient Enforces exact 90 minutes and buffer policy exclude
+     * the same record
      */
     public AppointmentResponse updateAppointment(Long appointmentId, AppointmentRequest request) {
         Appointment a = appointmentRepository.findById(appointmentId)
@@ -100,8 +101,8 @@ public class AppointmentService {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Patients can only update their own appointments");
             }
             // patients cannot change doctor/patient
-            if ((request.getPatientId() != null && !request.getPatientId().equals(me)) ||
-                    (request.getDoctorId() != null && !request.getDoctorId().equals(a.getDoctor().getId()))) {
+            if ((request.getPatientId() != null && !request.getPatientId().equals(me))
+                    || (request.getDoctorId() != null && !request.getDoctorId().equals(a.getDoctor().getId()))) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot change doctor or patient");
             }
         } else if (isStaff()) {
@@ -138,9 +139,8 @@ public class AppointmentService {
     }
 
     /**
-     * Delete an appointment.
-     * Staff can delete any
-     * Patients can delete only their own
+     * Delete an appointment. Staff can delete any Patients can delete only
+     * their own
      */
     public void deleteAppointment(Long appointmentId) {
         Appointment a = appointmentRepository.findById(appointmentId)
@@ -152,8 +152,8 @@ public class AppointmentService {
         appointmentRepository.delete(a);
     }
 
-    /** List appointments for a patient.
-     *Patients can only read their own
+    /**
+     * List appointments for a patient. Patients can only read their own
      */
     public List<AppointmentResponse> getAppointmentsForPatient(Long patientId) {
         if (isPatient() && !isSelf(patientId)) {
@@ -173,9 +173,9 @@ public class AppointmentService {
     }
 
     /**
-     * Public availability for a doctor on a given date.
-     * - Builds 15-min grid
-     * - Filters out slots that overlap any existing appt expanded by 15-min buffer
+     * Public availability for a doctor on a given date. - Builds 15-min grid -
+     * Filters out slots that overlap any existing appt expanded by 15-min
+     * buffer
      */
     public DoctorAvailabilityResponse getAvailabilityForDoctor(Long doctorId, LocalDate date) {
         LocalDateTime gridStart = date.atTime(DAY_START);
@@ -271,12 +271,13 @@ public class AppointmentService {
     }
 
     /**
-     * Validate that a proposed [start,end) meets buffer rules vs existing appts.
+     * Validate that a proposed [start,end) meets buffer rules vs existing
+     * appts.
      */
     private void ensureDoctorSlotFitsPolicy(Long doctorId,
-                                            LocalDateTime proposedStart,
-                                            LocalDateTime proposedEnd,
-                                            Long excludeAppointmentId) {
+            LocalDateTime proposedStart,
+            LocalDateTime proposedEnd,
+            Long excludeAppointmentId) {
         //open window + or - GAP to catch edge overlaps
         LocalDate day = proposedStart.toLocalDate();
         LocalDateTime dayStart = day.atTime(DAY_START).minusMinutes(GAP_MINUTES);
@@ -286,7 +287,9 @@ public class AppointmentService {
                 doctorId, toOffset(dayStart), toOffset(dayEnd));
 
         for (var existing : sameDay) {
-            if (excludeAppointmentId != null && excludeAppointmentId.equals(existing.getId())) continue;
+            if (excludeAppointmentId != null && excludeAppointmentId.equals(existing.getId())) {
+                continue;
+            }
 
             LocalDateTime s = toLocal(existing.getStartTime());
             LocalDateTime e = toLocal(existing.getEndTime());
@@ -308,7 +311,7 @@ public class AppointmentService {
      * Check if [aStart,aEnd) overlaps [bStart,bEnd).
      */
     private static boolean intervalsOverlap(LocalDateTime aStart, LocalDateTime aEnd,
-                                            LocalDateTime bStart, LocalDateTime bEnd) {
+            LocalDateTime bStart, LocalDateTime bEnd) {
         return aStart.isBefore(bEnd) && bStart.isBefore(aEnd);
     }
 
@@ -326,6 +329,20 @@ public class AppointmentService {
         return odt.atZoneSameInstant(SYSTEM_ZONE).toLocalDateTime();
     }
 
-    /** Simple time-range container used during availability checks. */
-    private record TimeBlock(LocalDateTime start, LocalDateTime end) {}
+    /**
+     * Simple time-range container used during availability checks.
+     */
+    private record TimeBlock(LocalDateTime start, LocalDateTime end) {
+
+    }
+
+    public List<AppointmentResponse> getAllAppointments() {
+        if (!isStaff()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only");
+        }
+        return appointmentRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
 }
