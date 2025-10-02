@@ -4,11 +4,8 @@ import com.osu.HealthApp.component.JwtCookieAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import static org.springframework.security.authorization.AuthorizationManagers.allOf;
-import static org.springframework.security.authorization.AuthorizationManagers.anyOf;
-import static org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole;
-import static org.springframework.security.authorization.AuthorityAuthorizationManager.hasAnyRole;
-import static org.springframework.security.authorization.AuthorityAuthorizationManager.hasAuthority;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -19,11 +16,16 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 
+import java.util.Arrays;
 import java.util.List;
+
+import static org.springframework.security.authorization.AuthorityAuthorizationManager.*;
+import static org.springframework.security.authorization.AuthorizationManagers.allOf;
+import static org.springframework.security.authorization.AuthorizationManagers.anyOf;
 
 @Configuration
 @EnableMethodSecurity
@@ -32,39 +34,106 @@ public class SecurityConfig {
 
     private final JwtCookieAuthFilter jwtFilter;
 
+    /**
+     * security setup:
+     * Stateless JWT auth via HttpOnly cookie
+     * CORS for the SPA
+     * CSRF disabled (token in cookie, API is stateless JSON)
+     * Route/role rules per resource
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationProvider authProvider) throws Exception {
+        String originsProp = System.getenv().getOrDefault(
+                "CORS_ALLOWED_ORIGINS",
+                System.getProperty("CORS_ALLOWED_ORIGINS", "http://localhost:3000")
+        );
+        List<String> allowedOrigins = Arrays.stream(originsProp.split(","))
+                .map(String::trim).filter(s -> !s.isEmpty()).toList();
+
         http
+                // Use stateless sessions so JWT only
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // CORS for browser
                 .cors(cors -> cors.configurationSource(req -> {
                     var c = new CorsConfiguration();
-                    c.setAllowedOrigins(List.of(System.getenv().getOrDefault("CORS_ALLOWED_ORIGINS", "http://localhost:3000")));
+                    c.setAllowedOrigins(allowedOrigins);
                     c.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-                    c.setAllowedHeaders(List.of("Content-Type","Authorization","X-XSRF-TOKEN"));
+                    c.setAllowedHeaders(List.of("*"));
+                    c.setExposedHeaders(List.of("Set-Cookie"));
                     c.setAllowCredentials(true);
                     return c;
                 }))
-                .csrf(csrf -> csrf
-                        .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/api/auth/**") // auth endpoints are stateless
-                )
+
+                .csrf(AbstractHttpConfigurer::disable)
+
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+
+                // authorization rules
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/api/doctor/doctors").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/appointments/doctor/*/availability").permitAll()
                         .requestMatchers("/api/me").authenticated()
-                        .requestMatchers("/api/admin/**").access(allOf(hasRole("ADMIN"), hasAuthority("CONTEXT_STAFF")))
-                        .requestMatchers("/api/doctor/**").access(allOf(hasAnyRole("DOCTOR","ADMIN"), hasAuthority("CONTEXT_STAFF")))
-                        .requestMatchers("/api/nurse/**").access(allOf(hasAnyRole("NURSE","ADMIN"), hasAuthority("CONTEXT_STAFF")))
-                        .requestMatchers("/api/patient/**").access(anyOf(allOf(hasRole("PATIENT"), hasAuthority("CONTEXT_PATIENT")), allOf(hasRole("ADMIN"), hasAuthority("CONTEXT_STAFF"))))
+                        .requestMatchers("/api/admin/**")
+                        .access(allOf(hasRole("ADMIN"), hasAuthority("CONTEXT_STAFF")))
+                        .requestMatchers("/api/doctor/**")
+                        .access(allOf(hasAnyRole("DOCTOR", "ADMIN"), hasAuthority("CONTEXT_STAFF")))
+                        .requestMatchers("/api/nurse/**")
+                        .access(allOf(hasAnyRole("NURSE", "ADMIN"), hasAuthority("CONTEXT_STAFF")))
+                        .requestMatchers("/api/patient/**")
+                        .access(anyOf(
+                                allOf(hasRole("PATIENT"), hasAuthority("CONTEXT_PATIENT")),
+                                allOf(hasRole("ADMIN"), hasAuthority("CONTEXT_STAFF"))
+                        ))
+
+                        // Appointments CRUD
+                        .requestMatchers(HttpMethod.POST, "/api/appointments/**")
+                        .access(anyOf(
+                                allOf(hasAnyRole("DOCTOR", "NURSE"), hasAuthority("CONTEXT_STAFF")),
+                                allOf(hasRole("PATIENT"), hasAuthority("CONTEXT_PATIENT"))
+                        ))
+                        .requestMatchers(HttpMethod.PUT, "/api/appointments/**")
+                        .access(anyOf(
+                                allOf(hasAnyRole("DOCTOR", "NURSE"), hasAuthority("CONTEXT_STAFF")),
+                                allOf(hasRole("PATIENT"), hasAuthority("CONTEXT_PATIENT"))
+                        ))
+                        .requestMatchers(HttpMethod.PATCH, "/api/appointments/**")
+                        .access(anyOf(
+                                allOf(hasAnyRole("DOCTOR", "NURSE"), hasAuthority("CONTEXT_STAFF")),
+                                allOf(hasRole("PATIENT"), hasAuthority("CONTEXT_PATIENT"))
+                        ))
+                        .requestMatchers(HttpMethod.DELETE, "/api/appointments/**")
+                        .access(anyOf(
+                                allOf(hasAnyRole("DOCTOR", "NURSE"), hasAuthority("CONTEXT_STAFF")),
+                                allOf(hasRole("PATIENT"), hasAuthority("CONTEXT_PATIENT"))
+                        ))
+                        .requestMatchers(HttpMethod.GET, "/api/appointments/doctor/**")
+                        .access(allOf(hasAnyRole("DOCTOR", "NURSE", "ADMIN"), hasAuthority("CONTEXT_STAFF")))
+                        .requestMatchers(HttpMethod.GET, "/api/appointments/patient/**")
+                        .access(anyOf(
+                                allOf(hasAnyRole("DOCTOR", "NURSE", "ADMIN"), hasAuthority("CONTEXT_STAFF")),
+                                allOf(hasRole("PATIENT"), hasAuthority("CONTEXT_PATIENT"))
+                        ))
+
+                        // everything else requires authentication
                         .anyRequest().authenticated()
                 )
-                .authenticationProvider(authProvider)
+
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable);
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .authenticationProvider(authProvider);
 
         return http.build();
     }
 
+    /**
+     * Wire a DAO-based AuthenticationProvider with our UDS + encoder.
+     */
     @Bean
     public AuthenticationProvider authenticationProvider(PasswordEncoder encoder, UserDetailsService uds) {
         var provider = new DaoAuthenticationProvider(uds);
@@ -72,6 +141,7 @@ public class SecurityConfig {
         return provider;
     }
 
+    /** Expose AuthenticationManager for injection where needed. */
     @Bean
     public AuthenticationManager authenticationManager(
             org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration cfg
