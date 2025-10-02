@@ -1,7 +1,7 @@
 package com.osu.HealthApp.component;
 
-import com.osu.HealthApp.models.Context;
 import com.osu.HealthApp.models.User;
+import com.osu.HealthApp.models.Context;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
