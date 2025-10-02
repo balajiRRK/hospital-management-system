@@ -23,15 +23,14 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
 
-    // Scheduling 90min visit, 15min gap, 15min grid, day 09:00–17:00
-    private static final int SLOT_MINUTES = 90;
-    private static final int GAP_MINUTES = 15;   // buffer between visits
-    private static final int STEP_MINUTES = 15;   // grid step for availability
+    // Scheduling rules
+    private static final int SLOT_MINUTES = 60;
+    private static final int GAP_MINUTES = 15;
+    private static final int STEP_MINUTES = 15;
     private static final LocalTime DAY_START = LocalTime.of(9, 0);
-    private static final LocalTime DAY_END = LocalTime.of(17, 0); // exclusive end
+    private static final LocalTime DAY_END = LocalTime.of(17, 0);
 
-    // Use the server's local time zone for wall-time calculations
-    private static final ZoneId SYSTEM_ZONE = ZoneId.systemDefault();
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("America/New_York");
 
     public AppointmentService(AppointmentRepository ar, UserRepository ur) {
         this.appointmentRepository = ar;
@@ -40,8 +39,8 @@ public class AppointmentService {
 
     /**
      * Create a new appointment. Patients can only create for themselves
-     * Patients can only create for themselves
-     * Enforces exact 90 minutes and 15-minute buffer vs existing
+     * Patients can only create for themselves Enforces exact 90 minutes and
+     * 15-minute buffer vs existing
      */
     public AppointmentResponse createAppointment(AppointmentRequest request) {
         Long patientId;
@@ -66,12 +65,11 @@ public class AppointmentService {
         User doctor = userRepository.findById(request.getDoctorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid doctorId"));
 
-        var start = request.getStartTime().toLocalDateTime();
-        var end = request.getEndTime().toLocalDateTime();
+        OffsetDateTime start = request.getStartTime();
+        OffsetDateTime end = request.getEndTime();
 
-        // enforce 90 min duration
-        if (!Duration.between(start, end).equals(Duration.ofMinutes(SLOT_MINUTES))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment must be exactly 90 minutes long");
+        if (!Duration.between(start.toInstant(), end.toInstant()).equals(Duration.ofMinutes(SLOT_MINUTES))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment must be exactly 60 minutes long");
         }
 
         ensureDoctorSlotFitsPolicy(doctor.getId(), start, end, null);
@@ -79,8 +77,8 @@ public class AppointmentService {
         Appointment a = new Appointment();
         a.setPatient(patient);
         a.setDoctor(doctor);
-        a.setStartTime(request.getStartTime());
-        a.setEndTime(request.getEndTime());
+        a.setStartTime(start);
+        a.setEndTime(end);
         a.setReason(request.getReason());
 
         return toResponse(appointmentRepository.save(a));
@@ -105,34 +103,23 @@ public class AppointmentService {
                     || (request.getDoctorId() != null && !request.getDoctorId().equals(a.getDoctor().getId()))) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot change doctor or patient");
             }
-        } else if (isStaff()) {
-            // staff may change doctor/patient if provided
-            if (request.getPatientId() != null && !a.getPatient().getId().equals(request.getPatientId())) {
-                a.setPatient(userRepository.findById(request.getPatientId())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid patientId")));
-            }
-            if (request.getDoctorId() != null && !a.getDoctor().getId().equals(request.getDoctorId())) {
-                a.setDoctor(userRepository.findById(request.getDoctorId())
-                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid doctorId")));
-            }
         }
 
         if (request.getStartTime() == null || request.getEndTime() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startTime and endTime are required");
         }
 
-        var start = request.getStartTime().toLocalDateTime();
-        var end = request.getEndTime().toLocalDateTime();
+        OffsetDateTime start = request.getStartTime();
+        OffsetDateTime end = request.getEndTime();
 
-        // enforce 90 min duration
-        if (!Duration.between(start, end).equals(Duration.ofMinutes(SLOT_MINUTES))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment must be exactly 90 minutes long");
+        if (!Duration.between(start.toInstant(), end.toInstant()).equals(Duration.ofMinutes(SLOT_MINUTES))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment must be exactly 60 minutes long");
         }
 
         ensureDoctorSlotFitsPolicy(a.getDoctor().getId(), start, end, appointmentId);
 
-        a.setStartTime(request.getStartTime());
-        a.setEndTime(request.getEndTime());
+        a.setStartTime(start);
+        a.setEndTime(end);
         a.setReason(request.getReason());
 
         return toResponse(appointmentRepository.save(a));
@@ -162,9 +149,6 @@ public class AppointmentService {
         return appointmentRepository.findByPatientId(patientId).stream().map(this::toResponse).toList();
     }
 
-    /**
-     * List appointments for a doctor ,staff-only.
-     */
     public List<AppointmentResponse> getAppointmentsForDoctor(Long doctorId) {
         if (!isStaff()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only");
@@ -178,31 +162,28 @@ public class AppointmentService {
      * buffer
      */
     public DoctorAvailabilityResponse getAvailabilityForDoctor(Long doctorId, LocalDate date) {
-        LocalDateTime gridStart = date.atTime(DAY_START);
-        LocalDateTime gridEnd = date.atTime(DAY_END);
+        // Define the working day in  our timezone, then convert to UTC instants.
+        OffsetDateTime dayStartUTC = date.atTime(DAY_START).atZone(CLINIC_ZONE).toOffsetDateTime().withOffsetSameInstant(ZoneOffset.UTC);
+        OffsetDateTime dayEndUTC = date.atTime(DAY_END).atZone(CLINIC_ZONE).toOffsetDateTime().withOffsetSameInstant(ZoneOffset.UTC);
 
-        // slightly larger window to catch buffer spillovers
-        OffsetDateTime repoStart = toOffset(gridStart.minusMinutes(GAP_MINUTES));
-        OffsetDateTime repoEnd = toOffset(gridEnd.plusMinutes(GAP_MINUTES));
+        var appts = appointmentRepository.findByDoctorIdAndStartTimeBetween(doctorId, dayStartUTC, dayEndUTC);
 
-        var appts = appointmentRepository.findByDoctorIdAndStartTimeBetween(doctorId, repoStart, repoEnd);
-
-        // Expand each existing appt by the 15-min buffer on both sides
         List<TimeBlock> buffered = new ArrayList<>();
         for (var ap : appts) {
-            LocalDateTime s = toLocal(ap.getStartTime());
-            LocalDateTime e = toLocal(ap.getEndTime());
-            buffered.add(new TimeBlock(s.minusMinutes(GAP_MINUTES), e.plusMinutes(GAP_MINUTES)));
+            buffered.add(new TimeBlock(
+                    ap.getStartTime().minusMinutes(GAP_MINUTES),
+                    ap.getEndTime().plusMinutes(GAP_MINUTES))
+            );
         }
 
-        // Candidate starts every 15 minutes; accept if the full 90-min slot fits
         List<String> free = new ArrayList<>();
-        for (LocalDateTime t = gridStart; !t.plusMinutes(SLOT_MINUTES).isAfter(gridEnd); t = t.plusMinutes(STEP_MINUTES)) {
-            LocalDateTime tEnd = t.plusMinutes(SLOT_MINUTES);
-            LocalDateTime finalT = t;
+        for (OffsetDateTime t = dayStartUTC; !t.plusMinutes(SLOT_MINUTES).isAfter(dayEndUTC); t = t.plusMinutes(STEP_MINUTES)) {
+            OffsetDateTime tEnd = t.plusMinutes(SLOT_MINUTES);
+            final OffsetDateTime finalT = t;
             boolean overlaps = buffered.stream().anyMatch(b -> intervalsOverlap(finalT, tEnd, b.start(), b.end()));
             if (!overlaps) {
-                free.add(t.toLocalTime().toString()); // "HH:mm"
+                // Return the time formatted in our local time for the user
+                free.add(t.atZoneSameInstant(CLINIC_ZONE).toLocalTime().toString());
             }
         }
 
@@ -213,9 +194,43 @@ public class AppointmentService {
         return r;
     }
 
-    /**
-     * Map entity -> DTO for API responses.
-     */
+    private void ensureDoctorSlotFitsPolicy(Long doctorId,
+            OffsetDateTime proposedStart,
+            OffsetDateTime proposedEnd,
+            Long excludeAppointmentId) {
+        // Query for appointments on the same day in UTC.
+        OffsetDateTime dayStart = proposedStart.with(LocalTime.MIN);
+        OffsetDateTime dayEnd = proposedStart.with(LocalTime.MAX);
+
+        var sameDay = appointmentRepository.findByDoctorIdAndStartTimeBetween(doctorId, dayStart, dayEnd);
+
+        for (var existing : sameDay) {
+            if (excludeAppointmentId != null && excludeAppointmentId.equals(existing.getId())) {
+                continue;
+            }
+
+            OffsetDateTime blockFrom = existing.getStartTime().minusMinutes(GAP_MINUTES);
+            OffsetDateTime blockTo = existing.getEndTime().plusMinutes(GAP_MINUTES);
+
+            if (intervalsOverlap(proposedStart, proposedEnd, blockFrom, blockTo)) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Doctor not available: Slot conflicts with another appointment's buffer"
+                );
+            }
+        }
+    }
+
+    private static boolean intervalsOverlap(OffsetDateTime aStart, OffsetDateTime aEnd,
+            OffsetDateTime bStart, OffsetDateTime bEnd) {
+        return aStart.toInstant().isBefore(bEnd.toInstant()) && bStart.toInstant().isBefore(aEnd.toInstant());
+    }
+
+    // uses the timezone-aware OffsetDateTime
+    private record TimeBlock(OffsetDateTime start, OffsetDateTime end) {
+
+    }
+
     private AppointmentResponse toResponse(Appointment a) {
         AppointmentResponse r = new AppointmentResponse();
         r.setId(a.getId());
@@ -229,9 +244,6 @@ public class AppointmentService {
         return r;
     }
 
-    /**
-     * True if current user has staff context.
-     */
     private boolean isStaff() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.getAuthorities().stream()
@@ -239,9 +251,6 @@ public class AppointmentService {
                 .anyMatch("CONTEXT_STAFF"::equals);
     }
 
-    /**
-     * True if current user has patient context.
-     */
     private boolean isPatient() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.getAuthorities().stream()
@@ -249,22 +258,15 @@ public class AppointmentService {
                 .anyMatch("CONTEXT_PATIENT"::equals);
     }
 
-    /**
-     * True if given userId is the current principal.
-     */
     private boolean isSelf(Long userId) {
         return getCurrentUserIdOrThrow().equals(userId);
     }
 
-    /**
-     * Get current principals userId or throw 401.
-     */
     private Long getCurrentUserIdOrThrow() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName() == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
-        // assuming username == email
         return userRepository.findByEmail(auth.getName())
                 .map(User::getId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));

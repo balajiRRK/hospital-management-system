@@ -3,28 +3,37 @@
 import { useEffect, useState } from 'react';
 
 import { Card, CardContent } from '@/components/ui/card';
-
-import { type AppointmentResponse, getAppointmentsForPatient } from './api';
+import { getAppointmentsForPatient } from '@/lib/api';
+import { type AppointmentResponse } from '@/lib/types';
 
 export default function MyAppointmentsList({ meId }: { meId: number }) {
   const [myAppts, setMyAppts] = useState<AppointmentResponse[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    const fetchAppointments = async () => {
       try {
         setErr(null);
         setLoading(true);
         const data = await getAppointmentsForPatient(meId);
-        if (!cancelled) setMyAppts(data);
-      } catch (e: any) {
-        if (!cancelled) setErr(e?.message ?? 'Failed to load appointments');
+        if (!cancelled) {
+          setMyAppts(data);
+        }
+      } catch (e) {
+        const message = e instanceof Error ? e.message : 'Failed to load appointments';
+        if (!cancelled) {
+          setErr(message);
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-    })();
+    };
+
+    fetchAppointments();
     return () => {
       cancelled = true;
     };
@@ -34,13 +43,17 @@ export default function MyAppointmentsList({ meId }: { meId: number }) {
     <Card className="h-full">
       <CardContent className="p-6">
         <h3 className="mb-3 font-semibold">Your Appointments</h3>
-        {loading ? (
-          <div className="text-muted-foreground text-sm">Loading…</div>
-        ) : err ? (
-          <div className="text-sm text-red-600">{err}</div>
-        ) : myAppts.length === 0 ? (
+
+        {/* one state at a time */}
+        {loading && <div className="text-muted-foreground text-sm">Loading…</div>}
+
+        {err && <div className="text-sm text-red-600">{err}</div>}
+
+        {!loading && !err && myAppts.length === 0 && (
           <div className="text-muted-foreground text-sm">No appointments yet.</div>
-        ) : (
+        )}
+
+        {!loading && !err && myAppts.length > 0 && (
           <ul className="space-y-1 text-sm">
             {myAppts.map((a) => (
               <li key={a.id}>

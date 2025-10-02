@@ -1,14 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+
+import { useAuth } from '@/app/providers/AuthProvider'; // adjust path
+import { Button } from '@/components/ui/button';
 import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
 } from '@/components/ui/navigation-menu';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/app/providers/AuthProvider'; // adjust path
 
 export default function Navbar() {
   const { user, logout } = useAuth();
