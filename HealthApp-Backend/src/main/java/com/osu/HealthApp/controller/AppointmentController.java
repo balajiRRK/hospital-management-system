@@ -12,7 +12,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/appointments")
 public class AppointmentController {
-
     private final AppointmentService appointmentService;
 
     public AppointmentController(AppointmentService s) {
@@ -40,10 +39,5 @@ public class AppointmentController {
             @RequestParam String date // "yyyy-MM-dd"
     ) {
         return appointmentService.getAvailabilityForDoctor(doctorId, LocalDate.parse(date));
-    }
-
-    @GetMapping
-    public List<AppointmentResponse> getAll() {
-        return appointmentService.getAllAppointments();
     }
 }

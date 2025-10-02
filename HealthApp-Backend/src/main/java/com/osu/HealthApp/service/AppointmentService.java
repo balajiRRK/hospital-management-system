@@ -19,7 +19,6 @@ import java.util.List;
 
 @Service
 public class AppointmentService {
-
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
 
@@ -37,11 +36,6 @@ public class AppointmentService {
         this.userRepository = ur;
     }
 
-    /**
-     * Create a new appointment. Patients can only create for themselves
-     * Patients can only create for themselves Enforces exact 90 minutes and
-     * 15-minute buffer vs existing
-     */
     public AppointmentResponse createAppointment(AppointmentRequest request) {
         Long patientId;
         if (isPatient()) {
@@ -68,6 +62,7 @@ public class AppointmentService {
         OffsetDateTime start = request.getStartTime();
         OffsetDateTime end = request.getEndTime();
 
+
         if (!Duration.between(start.toInstant(), end.toInstant()).equals(Duration.ofMinutes(SLOT_MINUTES))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment must be exactly 60 minutes long");
         }
@@ -84,11 +79,6 @@ public class AppointmentService {
         return toResponse(appointmentRepository.save(a));
     }
 
-    /**
-     * Update an appointment. Patients can only update their own, and cannot
-     * change doctor/patient Enforces exact 90 minutes and buffer policy exclude
-     * the same record
-     */
     public AppointmentResponse updateAppointment(Long appointmentId, AppointmentRequest request) {
         Appointment a = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
@@ -98,16 +88,17 @@ public class AppointmentService {
             if (!a.getPatient().getId().equals(me)) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Patients can only update their own appointments");
             }
-            // patients cannot change doctor/patient
-            if ((request.getPatientId() != null && !request.getPatientId().equals(me))
-                    || (request.getDoctorId() != null && !request.getDoctorId().equals(a.getDoctor().getId()))) {
+            if ((request.getPatientId() != null && !request.getPatientId().equals(me)) ||
+                    (request.getDoctorId() != null && !request.getDoctorId().equals(a.getDoctor().getId()))) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot change doctor or patient");
             }
         }
 
+
         if (request.getStartTime() == null || request.getEndTime() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startTime and endTime are required");
         }
+
 
         OffsetDateTime start = request.getStartTime();
         OffsetDateTime end = request.getEndTime();
@@ -125,10 +116,7 @@ public class AppointmentService {
         return toResponse(appointmentRepository.save(a));
     }
 
-    /**
-     * Delete an appointment. Staff can delete any Patients can delete only
-     * their own
-     */
+
     public void deleteAppointment(Long appointmentId) {
         Appointment a = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
@@ -139,9 +127,6 @@ public class AppointmentService {
         appointmentRepository.delete(a);
     }
 
-    /**
-     * List appointments for a patient. Patients can only read their own
-     */
     public List<AppointmentResponse> getAppointmentsForPatient(Long patientId) {
         if (isPatient() && !isSelf(patientId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot read another patient’s appointments");
@@ -156,11 +141,7 @@ public class AppointmentService {
         return appointmentRepository.findByDoctorId(doctorId).stream().map(this::toResponse).toList();
     }
 
-    /**
-     * Public availability for a doctor on a given date. - Builds 15-min grid -
-     * Filters out slots that overlap any existing appt expanded by 15-min
-     * buffer
-     */
+
     public DoctorAvailabilityResponse getAvailabilityForDoctor(Long doctorId, LocalDate date) {
         // Define the working day in  our timezone, then convert to UTC instants.
         OffsetDateTime dayStartUTC = date.atTime(DAY_START).atZone(CLINIC_ZONE).toOffsetDateTime().withOffsetSameInstant(ZoneOffset.UTC);
@@ -195,9 +176,9 @@ public class AppointmentService {
     }
 
     private void ensureDoctorSlotFitsPolicy(Long doctorId,
-            OffsetDateTime proposedStart,
-            OffsetDateTime proposedEnd,
-            Long excludeAppointmentId) {
+                                            OffsetDateTime proposedStart,
+                                            OffsetDateTime proposedEnd,
+                                            Long excludeAppointmentId) {
         // Query for appointments on the same day in UTC.
         OffsetDateTime dayStart = proposedStart.with(LocalTime.MIN);
         OffsetDateTime dayEnd = proposedStart.with(LocalTime.MAX);
@@ -222,14 +203,14 @@ public class AppointmentService {
     }
 
     private static boolean intervalsOverlap(OffsetDateTime aStart, OffsetDateTime aEnd,
-            OffsetDateTime bStart, OffsetDateTime bEnd) {
+                                            OffsetDateTime bStart, OffsetDateTime bEnd) {
         return aStart.toInstant().isBefore(bEnd.toInstant()) && bStart.toInstant().isBefore(aEnd.toInstant());
     }
 
     // uses the timezone-aware OffsetDateTime
     private record TimeBlock(OffsetDateTime start, OffsetDateTime end) {
-
     }
+
 
     private AppointmentResponse toResponse(Appointment a) {
         AppointmentResponse r = new AppointmentResponse();
@@ -270,81 +251,5 @@ public class AppointmentService {
         return userRepository.findByEmail(auth.getName())
                 .map(User::getId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
-    }
-
-    /**
-     * Validate that a proposed [start,end) meets buffer rules vs existing
-     * appts.
-     */
-    private void ensureDoctorSlotFitsPolicy(Long doctorId,
-            LocalDateTime proposedStart,
-            LocalDateTime proposedEnd,
-            Long excludeAppointmentId) {
-        //open window + or - GAP to catch edge overlaps
-        LocalDate day = proposedStart.toLocalDate();
-        LocalDateTime dayStart = day.atTime(DAY_START).minusMinutes(GAP_MINUTES);
-        LocalDateTime dayEnd = day.atTime(DAY_END).plusMinutes(GAP_MINUTES);
-
-        var sameDay = appointmentRepository.findByDoctorIdAndStartTimeBetween(
-                doctorId, toOffset(dayStart), toOffset(dayEnd));
-
-        for (var existing : sameDay) {
-            if (excludeAppointmentId != null && excludeAppointmentId.equals(existing.getId())) {
-                continue;
-            }
-
-            LocalDateTime s = toLocal(existing.getStartTime());
-            LocalDateTime e = toLocal(existing.getEndTime());
-
-            // Expand existing appt by the buffer
-            LocalDateTime blockFrom = s.minusMinutes(GAP_MINUTES);
-            LocalDateTime blockTo = e.plusMinutes(GAP_MINUTES);
-
-            if (intervalsOverlap(proposedStart, proposedEnd, blockFrom, blockTo)) {
-                throw new ResponseStatusException(
-                        HttpStatus.CONFLICT,
-                        "Doctor not available: 90-minute visits require a 15-minute buffer"
-                );
-            }
-        }
-    }
-
-    /**
-     * Check if [aStart,aEnd) overlaps [bStart,bEnd).
-     */
-    private static boolean intervalsOverlap(LocalDateTime aStart, LocalDateTime aEnd,
-            LocalDateTime bStart, LocalDateTime bEnd) {
-        return aStart.isBefore(bEnd) && bStart.isBefore(aEnd);
-    }
-
-    /**
-     * Convert LocalDateTime to OffsetDateTime using system zone.
-     */
-    private static OffsetDateTime toOffset(LocalDateTime ldt) {
-        return ldt.atZone(SYSTEM_ZONE).toOffsetDateTime();
-    }
-
-    /**
-     * Convert OffsetDateTime to LocalDateTime in system zone.
-     */
-    private static LocalDateTime toLocal(OffsetDateTime odt) {
-        return odt.atZoneSameInstant(SYSTEM_ZONE).toLocalDateTime();
-    }
-
-    /**
-     * Simple time-range container used during availability checks.
-     */
-    private record TimeBlock(LocalDateTime start, LocalDateTime end) {
-
-    }
-
-    public List<AppointmentResponse> getAllAppointments() {
-        if (!isStaff()) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only");
-        }
-        return appointmentRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
     }
 }
