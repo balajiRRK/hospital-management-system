@@ -19,6 +19,7 @@ import java.util.List;
 
 @Service
 public class AppointmentService {
+
     private final AppointmentRepository appointmentRepository;
     private final UserRepository userRepository;
 
@@ -62,7 +63,6 @@ public class AppointmentService {
         OffsetDateTime start = request.getStartTime();
         OffsetDateTime end = request.getEndTime();
 
-
         if (!Duration.between(start.toInstant(), end.toInstant()).equals(Duration.ofMinutes(SLOT_MINUTES))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment must be exactly 60 minutes long");
         }
@@ -88,17 +88,15 @@ public class AppointmentService {
             if (!a.getPatient().getId().equals(me)) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Patients can only update their own appointments");
             }
-            if ((request.getPatientId() != null && !request.getPatientId().equals(me)) ||
-                    (request.getDoctorId() != null && !request.getDoctorId().equals(a.getDoctor().getId()))) {
+            if ((request.getPatientId() != null && !request.getPatientId().equals(me))
+                    || (request.getDoctorId() != null && !request.getDoctorId().equals(a.getDoctor().getId()))) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot change doctor or patient");
             }
         }
 
-
         if (request.getStartTime() == null || request.getEndTime() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startTime and endTime are required");
         }
-
 
         OffsetDateTime start = request.getStartTime();
         OffsetDateTime end = request.getEndTime();
@@ -115,7 +113,6 @@ public class AppointmentService {
 
         return toResponse(appointmentRepository.save(a));
     }
-
 
     public void deleteAppointment(Long appointmentId) {
         Appointment a = appointmentRepository.findById(appointmentId)
@@ -140,7 +137,6 @@ public class AppointmentService {
         }
         return appointmentRepository.findByDoctorId(doctorId).stream().map(this::toResponse).toList();
     }
-
 
     public DoctorAvailabilityResponse getAvailabilityForDoctor(Long doctorId, LocalDate date) {
         // Define the working day in  our timezone, then convert to UTC instants.
@@ -176,9 +172,9 @@ public class AppointmentService {
     }
 
     private void ensureDoctorSlotFitsPolicy(Long doctorId,
-                                            OffsetDateTime proposedStart,
-                                            OffsetDateTime proposedEnd,
-                                            Long excludeAppointmentId) {
+            OffsetDateTime proposedStart,
+            OffsetDateTime proposedEnd,
+            Long excludeAppointmentId) {
         // Query for appointments on the same day in UTC.
         OffsetDateTime dayStart = proposedStart.with(LocalTime.MIN);
         OffsetDateTime dayEnd = proposedStart.with(LocalTime.MAX);
@@ -203,14 +199,14 @@ public class AppointmentService {
     }
 
     private static boolean intervalsOverlap(OffsetDateTime aStart, OffsetDateTime aEnd,
-                                            OffsetDateTime bStart, OffsetDateTime bEnd) {
+            OffsetDateTime bStart, OffsetDateTime bEnd) {
         return aStart.toInstant().isBefore(bEnd.toInstant()) && bStart.toInstant().isBefore(aEnd.toInstant());
     }
 
     // uses the timezone-aware OffsetDateTime
     private record TimeBlock(OffsetDateTime start, OffsetDateTime end) {
-    }
 
+    }
 
     private AppointmentResponse toResponse(Appointment a) {
         AppointmentResponse r = new AppointmentResponse();
@@ -251,5 +247,15 @@ public class AppointmentService {
         return userRepository.findByEmail(auth.getName())
                 .map(User::getId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+    }
+
+    public List<AppointmentResponse> getAllAppointments() {
+        if (!isStaff()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only");
+        }
+        return appointmentRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 }
