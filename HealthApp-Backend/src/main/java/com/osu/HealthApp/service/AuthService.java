@@ -70,7 +70,7 @@ public class AuthService {
 
         var u = users.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials"));
-        if (!encoder.matches(req.password(), u.getPasswordHash())) {
+        if (!u.isEnabled() || !encoder.matches(req.password(), u.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials");
         }
 		if (c.equals(Context.STAFF) && u.getRoles().size() == 1 && u.getRoles().contains(Role.PATIENT)) {
