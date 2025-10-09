@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 
-import { useAuth } from '@/app/providers/AuthProvider'; // adjust path
+import { useAuth } from '@/app/providers/AuthProvider';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   NavigationMenu,
@@ -18,11 +19,23 @@ export default function Navbar() {
     <NavigationMenu>
       <NavigationMenuList className="items-center gap-3">
         {user ? (
-          <NavigationMenuItem>
-            <Button variant="outline" className="px-3 py-2" onClick={() => logout()}>
-              Logout
-            </Button>
-          </NavigationMenuItem>
+          <>
+            <NavigationMenuItem>
+              <Button variant="outline" className="px-3 py-2" onClick={() => logout()}>
+                Logout
+              </Button>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+
+              {/* Avatar */}
+              <Link href="/profile">
+                <Avatar>
+                  <AvatarImage src="https://github.com/shadcn.png" />
+                  <AvatarFallback>Profile</AvatarFallback>
+                </Avatar>
+              </Link>
+            </NavigationMenuItem>
+          </>
         ) : (
           <>
             {/* L0gin */}

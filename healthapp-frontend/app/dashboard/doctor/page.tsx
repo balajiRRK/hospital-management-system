@@ -1,21 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
-  User,
   Calendar as CalendarIcon,
-  LayoutDashboard,
   ClipboardCheck,
+  LayoutDashboard,
+  User,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+import { Calendar } from "@/components/ui/calendar";
+
 import {
+  apiLogout,
+  AppointmentResponse,
+  getAppointmentsForDoctor,
   getMe,
   MeResponse,
-  apiLogout,
-  getAppointmentsForDoctor,
-  AppointmentResponse,
 } from "../../appointments/api";
-import { useRouter } from "next/navigation";
-import { Calendar } from "@/components/ui/calendar";
 
 export default function DoctorDashboard() {
   const [activeTab, setActiveTab] = useState("Dashboard");
