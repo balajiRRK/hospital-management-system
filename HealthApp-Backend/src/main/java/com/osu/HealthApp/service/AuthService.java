@@ -47,7 +47,7 @@ public class AuthService {
     @Value("${jwt.access-ttl-minutes}") private long accessTtlMin;
     @Value("${jwt.refresh-ttl-days}") private long refreshTtlDays;
 
-    /** Register: everyone starts as PATIENT (role is NOT accepted from client). */
+    /** Register: everyone starts as PATIENT. */
     public ResponseEntity<AuthResponse> register(RegisterRequest req) {
         String email = req.email().trim().toLowerCase();
 
@@ -56,6 +56,8 @@ public class AuthService {
         });
 
         var u = new User();
+        u.setFirstName(req.firstName());
+        u.setLastName(req.lastName());
         u.setEmail(email);
         u.setPasswordHash(encoder.encode(req.password()));
         u.setEnabled(true);

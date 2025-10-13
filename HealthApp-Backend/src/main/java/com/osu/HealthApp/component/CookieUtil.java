@@ -33,7 +33,7 @@ public class CookieUtil {
     }
 
     private ResponseCookie.ResponseCookieBuilder base(String name, String value, Duration maxAge) {
-        // SameSite=None requires secure=true in modern browsers.
+        // SameSite=None requires secure=true
         return ResponseCookie.from(name, value)
                 .httpOnly(true)
                 .secure(secure)

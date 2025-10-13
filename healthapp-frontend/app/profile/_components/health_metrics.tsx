@@ -1,46 +1,39 @@
 'use client';
-import axios from "axios";
-import React, { useState } from "react";
+import axios from 'axios';
+import React, { useState } from 'react';
 
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useAuth } from '@/app/providers/AuthProvider';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
-interface HealthMetricFormProps {
-  userId: number;
-}
+const LBS_TO_KG = 0.453592;
 
-interface HealthMetricDto {
-  weight: number | "";
-  height: number | "";
-}
-
-const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-  withCredentials: true,
-});
-
-export default function HealthMetricForm({ userId }: HealthMetricFormProps) {
-  const [metrics, setMetrics] = useState<HealthMetricDto>({ weight: "", height: "" });
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setMetrics((prev) => ({
-      ...prev,
-      [name]: value === "" ? "" : parseFloat(value),
-    }));
-  };
+export default function HealthMetrics() {
+  const { user } = useAuth();
+  const [weightLbs, setWeightLbs] = useState('');
+  const [heightM, setHeightM] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+
+    setIsSubmitting(true);
     try {
-      await api.post(`/api/users/${userId}/health-metrics`, metrics, {
-        headers: { "Content-Type": "application/json" },
-      });
-      alert("Health metric saved!");
-      setMetrics({ weight: "", height: "" }); // reset form
+      const payload = {
+        weight: parseFloat(weightLbs) * LBS_TO_KG,
+        height: parseFloat(heightM),
+      };
+      const base = process.env.NEXT_PUBLIC_API_URL;
+      await axios.post(`${base}/api/users/${user.id}/health-metrics`, payload);
+      alert('Health metric saved!');
+      setWeightLbs('');
+      setHeightM('');
     } catch (error) {
-      console.error("Failed to save health metric:", error);
-      alert("Error saving health metric.");
+      console.error('Failed to save health metric:', error);
+      alert('Error saving health metric.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -48,27 +41,19 @@ export default function HealthMetricForm({ userId }: HealthMetricFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4 border p-4 rounded-lg">
       <div>
         <label className="block text-sm font-medium">Weight (lbs)</label>
-        <Input
-          type="number"
-          step="0.1"
-          name="weight"
-          value={metrics.weight}
-          onChange={handleChange}
-          required
-        />
+        <Input type="number" step="0.1" value={weightLbs} onChange={(e) => setWeightLbs(e.target.value)} required />
       </div>
       <div>
         <label className="block text-sm font-medium">Height (m)</label>
-        <Input
-          type="number"
-          step="0.01"
-          name="height"
-          value={metrics.height}
-          onChange={handleChange}
-          required
-        />
+        <Input type="number" step="0.01" value={heightM} onChange={(e) => setHeightM(e.target.value)} required />
       </div>
-      <Button type="submit">Save Metric</Button>
+      <div>
+        <label className="block text-sm font-medium">BMI</label>
+        <Input type="number" step="0.01" disabled/>
+      </div>
+      <Button type="submit" disabled={isSubmitting}>
+        {isSubmitting ? 'Saving...' : 'Save Metric'}
+      </Button>
     </form>
   );
 }

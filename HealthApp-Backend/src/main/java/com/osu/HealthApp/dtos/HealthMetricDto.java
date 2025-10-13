@@ -4,6 +4,6 @@ import lombok.Data;
 
 @Data
 public class HealthMetricDto {
-    private Double weight; // expecting pounds
-    private Double height; // expecting meters
+    private Double weight;
+    private Double height;
 }

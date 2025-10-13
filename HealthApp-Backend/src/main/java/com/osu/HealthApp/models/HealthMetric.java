@@ -12,8 +12,8 @@ public class HealthMetric {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double weight; // in Pounds
-    private Double height; // in meters
+    private Double weight;
+    private Double height;
     private Double bmi;    // Calculated Body Mass Index
 
     private Instant recordedAt = Instant.now();

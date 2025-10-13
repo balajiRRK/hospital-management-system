@@ -27,7 +27,7 @@ export type Role = 'ADMIN' | 'PATIENT' | 'DOCTOR' | 'NURSE';
 
 type UsersResponse = Record<string, Role[]>;
 
-const ALL_ROLES: Role[] = ['ADMIN', 'PATIENT', 'DOCTOR', 'NURSE', 'NURSE'];
+const ALL_ROLES: Role[] = ['ADMIN', 'PATIENT', 'DOCTOR', 'NURSE'];
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
@@ -101,7 +101,6 @@ export default function AdminDashboardPage() {
     try {
       setBusy(email, true);
       await api.post('/api/admin/addroles', { email, roles: [role] });
-      // optimistic update
       setUsers((prev) => ({
         ...prev,
         [email]: Array.from(new Set([...(prev[email] || []), role])),
@@ -123,7 +122,6 @@ export default function AdminDashboardPage() {
     try {
       setBusy(email, true);
       await api.post('/api/admin/removeroles', { email, roles: [role] });
-      // optimistic update
       setUsers((prev) => ({
         ...prev,
         [email]: (prev[email] || []).filter((r) => r !== role),
@@ -167,80 +165,83 @@ export default function AdminDashboardPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map(([email, roles]) => (
-            <TableRow key={email}>
-              <TableCell className="max-w-[300px] truncate font-medium" title={email}>
-                {email}
-              </TableCell>
+          {rows.map(([email, roles]) => {
+            const uniqueRoles = Array.from(new Set(roles || []));
+            return (
+              <TableRow key={email}>
+                <TableCell className="max-w-[300px] truncate font-medium" title={email}>
+                  {email}
+                </TableCell>
 
-              <TableCell className="space-x-2">
-                {(roles || []).length === 0 ? (
-                  <span className="text-muted-foreground text-sm">No roles</span>
-                ) : (
-                  roles.map((r) => (
-                    <Badge key={r} variant="secondary" className="mb-1">
-                      {r}
-                    </Badge>
-                  ))
-                )}
-              </TableCell>
-
-              <TableCell>
-                <Select
-                  value={selection[email] || ''}
-                  onValueChange={(v) => setSelection((prev) => ({ ...prev, [email]: v as Role }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ALL_ROLES.map((r) => (
-                      <SelectItem key={r} value={r}>
+                <TableCell className="space-x-2">
+                  {uniqueRoles.length === 0 ? (
+                    <span className="text-muted-foreground text-sm">No roles</span>
+                  ) : (
+                    uniqueRoles.map((r) => (
+                      <Badge key={r} variant="secondary" className="mb-1">
                         {r}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </TableCell>
+                      </Badge>
+                    ))
+                  )}
+                </TableCell>
 
-              <TableCell>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => onAddRole(email)} disabled={rowBusy[email]}>
-                    Add
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => onRemoveRole(email)}
-                    disabled={rowBusy[email]}
+                <TableCell>
+                  <Select
+                    value={selection[email] || ''}
+                    onValueChange={(v) => setSelection((prev) => ({ ...prev, [email]: v as Role }))}
                   >
-                    Remove
-                  </Button>
-                </div>
-              </TableCell>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ALL_ROLES.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
 
-              <TableCell className="text-right">
-                <div className="inline-flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onActivate(email)}
-                    disabled={rowBusy[email]}
-                  >
-                    Activate
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => onDeactivate(email)}
-                    disabled={rowBusy[email]}
-                  >
-                    Deactivate
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => onAddRole(email)} disabled={rowBusy[email]}>
+                      Add
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onRemoveRole(email)}
+                      disabled={rowBusy[email]}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <div className="inline-flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onActivate(email)}
+                      disabled={rowBusy[email]}
+                    >
+                      Activate
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onDeactivate(email)}
+                      disabled={rowBusy[email]}
+                    >
+                      Deactivate
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </div>

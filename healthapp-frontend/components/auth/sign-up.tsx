@@ -11,12 +11,27 @@ import { Label } from '@/components/ui/label';
 
 export default function SignUp() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = email.trim().length > 3 && password.trim().length >= 8;
+  const { firstName, lastName, email, password } = formData;
+
+  const canSubmit =
+    firstName.trim().length > 0 &&
+    lastName.trim().length > 0 &&
+    email.trim().length > 3 &&
+    password.trim().length >= 8;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,11 +46,15 @@ export default function SignUp() {
 
       await axios.post(
         `${base}/api/auth/register`,
-        { email: email.trim(), password: password.trim() },
+        {
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          password: password.trim(),
+        },
         { withCredentials: true, headers: { 'Content-Type': 'application/json' } },
       );
 
-      // success -> go to sign-in
       router.push('/Sign-in');
     } catch (err: unknown) {
       let msg = 'Sign up failed. Please try again.';
@@ -44,13 +63,10 @@ export default function SignUp() {
           msg = 'That email is already in use. Try signing in or use another email.';
         } else {
           msg =
-            (err.response?.data as { message?: string } | undefined)?.message ||
-            err.response?.statusText ||
-            err.message ||
-            msg;
+            (err.response?.data as { message?: string } | undefined)?.message || err.message || msg;
         }
       } else if (err instanceof Error) {
-        msg = err.message || msg;
+        msg = err.message;
       }
       setError(msg);
     } finally {
@@ -64,32 +80,64 @@ export default function SignUp() {
         <h1 className="mb-8 text-center text-3xl font-semibold">Create your account</h1>
 
         <form onSubmit={onSubmit} className="space-y-6">
-          {/*  email field  */}
+          <div className="flex w-full space-x-4">
+            {/* First Name Field */}
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                name="firstName"
+                type="text"
+                autoComplete="given-name"
+                required
+                className="h-12 w-full"
+                value={firstName}
+                onChange={handleChange}
+              />
+            </div>
+            {/* Last Name Field */}
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                name="lastName"
+                type="text"
+                autoComplete="family-name"
+                required
+                className="h-12 w-full"
+                value={lastName}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          {/* Email Field */}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
+              name="email"
               type="email"
-              inputMode="email"
               autoComplete="email"
               placeholder="name@example.com"
               required
               className="h-12 w-full"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={handleChange}
             />
           </div>
-          {/*  password field  */}
+          {/* Password Field */}
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
+              name="password"
               type="password"
               autoComplete="new-password"
               required
               className="h-12 w-full"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={handleChange}
             />
           </div>
 

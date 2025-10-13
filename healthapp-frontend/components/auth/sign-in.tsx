@@ -21,7 +21,7 @@ const ROLE_ENDPOINTS: Record<string, string> = {
   patient: '/api/auth/loginpatient',
   doctor: '/api/auth/loginstaff',
   nurse: '/api/auth/loginstaff',
-  admin: '/api/auth/register/admin',
+  admin: '/api/auth/loginstaff',
 };
 
 function normalize(s: string) {
@@ -32,7 +32,7 @@ export default function SignIn() {
   const router = useRouter();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
-  const [role, setRole] = useState<string>('patient'); // default to patient
+  const [role, setRole] = useState<string>('patient');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +46,6 @@ export default function SignIn() {
       const url = ROLE_ENDPOINTS[role];
       if (!url || !base) throw new Error('Unknown role or missing API base URL');
 
-      // Hit the API endpoint for the selected role
       const response = await axios.post(
         `${base}${url}`,
         { email, password },
@@ -64,7 +63,6 @@ export default function SignIn() {
       const normalized = rolesFromApi.map(normalize);
       const selected = normalize(role);
 
-      // check to see if  role is included in the API roles
       if (!normalized.includes(selected)) {
         toast.error(`You don't have the "${role}" role for this account.`);
         return;
@@ -114,7 +112,6 @@ export default function SignIn() {
             </Select>
           </div>
 
-          {/* Email field */}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -130,7 +127,6 @@ export default function SignIn() {
             />
           </div>
 
-          {/* Password field */}
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input

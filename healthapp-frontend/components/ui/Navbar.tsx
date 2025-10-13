@@ -15,6 +15,16 @@ import {
 export default function Navbar() {
   const { user, logout } = useAuth();
 
+  const getInitials = () => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return 'U';
+  };
+
   return (
     <NavigationMenu>
       <NavigationMenuList className="items-center gap-3">
@@ -26,26 +36,21 @@ export default function Navbar() {
               </Button>
             </NavigationMenuItem>
             <NavigationMenuItem>
-
-              {/* Avatar */}
-              <Link href="/profile">
+              <Link href="/profile" passHref>
                 <Avatar>
-                  <AvatarImage src="https://github.com/shadcn.png" />
-                  <AvatarFallback>Profile</AvatarFallback>
+                  <AvatarImage src={user.profilePhotoUrl || undefined} alt="User profile avatar" />
+                  <AvatarFallback>{getInitials()}</AvatarFallback>
                 </Avatar>
               </Link>
             </NavigationMenuItem>
           </>
         ) : (
           <>
-            {/* L0gin */}
             <NavigationMenuItem>
               <NavigationMenuLink asChild className="rounded-md border px-3 py-2">
                 <Link href="/Sign-in">Login</Link>
               </NavigationMenuLink>
             </NavigationMenuItem>
-
-            {/* Signup */}
             <NavigationMenuItem>
               <NavigationMenuLink asChild className="rounded-md border px-3 py-2">
                 <Link href="/Sign-up">Signup</Link>

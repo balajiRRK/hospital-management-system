@@ -53,7 +53,7 @@ export async function getAppointmentsForPatient(patientId: number): Promise<Appo
 // BACKEND: POST /api/appointments
 export async function createAppointment(input: {
   doctorId: number;
-  patientId: number;  
+  patientId: number;
   startTime: string;
   endTime: string;
   reason: string;
@@ -77,14 +77,10 @@ export async function apiLogout(): Promise<void> {
     const text = await res.text().catch(() => '');
     throw new Error(text || `Logout failed (${res.status})`);
   }
-
-  
 }
 
 // get appointments for a specific doctor
-export async function getAppointmentsForDoctor(
-  doctorId: number,
-): Promise<AppointmentResponse[]> {
+export async function getAppointmentsForDoctor(doctorId: number): Promise<AppointmentResponse[]> {
   const res = await fetch(`${API_BASE}/api/appointments/doctor/${doctorId}`, {
     credentials: 'include',
   });
@@ -92,12 +88,10 @@ export async function getAppointmentsForDoctor(
 }
 
 // get unique patients from those appointments
-export async function getPatientsForDoctorFromAppointments(
-  doctorId: number,
-): Promise<number[]> {
+export async function getPatientsForDoctorFromAppointments(doctorId: number): Promise<number[]> {
   const appointments = await getAppointmentsForDoctor(doctorId);
 
-  const patientIds = Array.from(new Set(appointments.map((a) => a.patientId)));
+  const patientIds = Array.from(new Set(appointments.map((a) => a.id)));
 
   return patientIds;
 }

@@ -1,13 +1,20 @@
 'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
-import { apiLogout, getMe } from '@/lib/api';
-
-type User = { id: number; email: string; name?: string; authorities?: string[] };
+import { dtoToUi, UserProfile, UserProfileResponseDto } from '@/lib/types';
 
 type AuthContextShape = {
-  user: User | null;
+  user: UserProfile | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -16,21 +23,35 @@ type AuthContextShape = {
 
 const AuthContext = createContext<AuthContextShape | undefined>(undefined);
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL!;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL;
+const api = axios.create({
+  baseURL: API_BASE || '/',
+  withCredentials: true,
+  headers: { 'Content-Type': 'application/json' },
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
   const refresh = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      const me = await getMe();
-      setUser(me);
+      const res = await api.get<UserProfileResponseDto>('/api/users/me');
+      if (!mountedRef.current) return;
+      setUser(dtoToUi(res.data));
     } catch {
+      if (!mountedRef.current) return;
       setUser(null);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
   }, []);
 
@@ -38,15 +59,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void refresh();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [refresh]);
+
   const login = useCallback(
     async (email: string, password: string) => {
-      const res = await fetch(`${API_BASE}/api/auth/loginpatient`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      const res = await api.post('/api/auth/loginpatient', { email, password });
+      if (res.status < 200 || res.status >= 300) {
+        throw new Error(`Login failed: ${res.status} ${res.statusText}`);
+      }
       await refresh();
     },
     [refresh],
@@ -54,11 +82,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await apiLogout();
+      await api.post('/api/auth/logout');
     } catch (e) {
-      console.error(e);
+      console.error('Logout failed:', e);
     } finally {
-      setUser(null); // clear client state no matter what
+      if (mountedRef.current) setUser(null);
     }
   }, []);
 
@@ -72,6 +100,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within <AuthProvider>');
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
   return ctx;
 }
