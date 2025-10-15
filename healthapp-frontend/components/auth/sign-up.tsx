@@ -55,7 +55,8 @@ export default function SignUp() {
         { withCredentials: true, headers: { 'Content-Type': 'application/json' } },
       );
 
-      router.push('/Sign-in');
+      router.push('/dashboard/patient');
+
     } catch (err: unknown) {
       let msg = 'Sign up failed. Please try again.';
       if (axios.isAxiosError(err)) {

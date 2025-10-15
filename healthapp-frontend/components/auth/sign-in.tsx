@@ -6,6 +6,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { useAuth } from '@/app/providers/authProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,6 +31,7 @@ function normalize(s: string) {
 
 export default function SignIn() {
   const router = useRouter();
+  const { refresh } = useAuth();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [role, setRole] = useState<string>('patient');
@@ -68,8 +70,12 @@ export default function SignIn() {
         return;
       }
 
+
+      await refresh();
+
       // Allowed -> redirect based on what they chose
       router.push(`/dashboard/${role}`);
+      router.refresh();
     } catch (err: unknown) {
       // gbt wrote this error handling part because for the life of me i couldnt solve the issue
       let msg = 'Login failed';

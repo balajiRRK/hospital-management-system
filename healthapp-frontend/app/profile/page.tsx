@@ -2,7 +2,7 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-import { useAuth } from '../providers/AuthProvider';
+import { useAuth } from '../providers/authProvider';
 import HealthMetrics from './_components/health_metrics';
 import PersonalInformation from './_components/personal_Information';
 import PrivacySecurity from './_components/PrivacySecurity';
