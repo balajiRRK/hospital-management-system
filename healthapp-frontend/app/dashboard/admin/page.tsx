@@ -1,145 +1,249 @@
 'use client';
 
-import Link from 'next/link';
-import { useState } from 'react';
+import axios from 'axios';
+import { useEffect, useMemo, useState } from 'react';
 
-import { doctors, nurses, patients } from '../../data/mock_data';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+
+export type Role = 'ADMIN' | 'PATIENT' | 'DOCTOR' | 'NURSE';
+
+type UsersResponse = Record<string, Role[]>;
+
+const ALL_ROLES: Role[] = ['ADMIN', 'PATIENT', 'DOCTOR', 'NURSE'];
+
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  withCredentials: true,
+});
 
 export default function AdminDashboardPage() {
-  const [newDoctorName, setNewDoctorName] = useState('');
-  const [newDoctorEmail, setNewDoctorEmail] = useState('');
-  const [newNurseName, setNewNurseName] = useState('');
-  const [newNurseEmail, setNewNurseEmail] = useState('');
-  const [newPatientName, setNewPatientName] = useState('');
-  const [newPatientCode, setNewPatientCode] = useState('');
-  const [newPatientDoctorId, setNewPatientDoctorId] = useState<number>(1);
+  const [users, setUsers] = useState<UsersResponse>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [selection, setSelection] = useState<Record<string, Role | ''>>({});
+  const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
 
-  const handleAddDoctor = () => {
-    if (!newDoctorName.trim() || !newDoctorEmail.trim()) {
-      alert('Please fill in all fields for the doctor.');
-      return;
+  const refresh = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await api.get<UsersResponse>('/api/admin/getusers');
+      setUsers(res.data || {});
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message || 'Failed to load users');
+    } finally {
+      setLoading(false);
     }
-    doctors.push({
-      id: doctors.length + 1,
-      name: newDoctorName.trim(),
-      email: newDoctorEmail.trim(),
-    });
-    setNewDoctorName('');
-    setNewDoctorEmail('');
   };
 
-  const handleAddNurse = () => {
-    if (!newNurseName.trim() || !newNurseEmail.trim()) {
-      alert('Please fill in all fields for the nurse.');
-      return;
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const rows = useMemo(() => {
+    const entries = Object.entries(users);
+    if (!query.trim()) return entries;
+    const q = query.trim().toLowerCase();
+    return entries.filter(([email]) => email.toLowerCase().includes(q));
+  }, [users, query]);
+
+  const setBusy = (email: string, v: boolean) => setRowBusy((prev) => ({ ...prev, [email]: v }));
+
+  const onActivate = async (email: string) => {
+    try {
+      setBusy(email, true);
+      await api.post('/api/admin/activate', { email });
+    } catch (e) {
+      console.error(e);
+      alert('Failed to activate user.');
+    } finally {
+      setBusy(email, false);
     }
-    nurses.push({
-      id: nurses.length + 1,
-      name: newNurseName.trim(),
-      email: newNurseEmail.trim(),
-    });
-    setNewNurseName('');
-    setNewNurseEmail('');
   };
 
-  const handleAddPatient = () => {
-    if (!newPatientName.trim() || !newPatientCode.trim() || !newPatientDoctorId) {
-      alert('Please fill in all fields for the patient.');
+  const onDeactivate = async (email: string) => {
+    try {
+      setBusy(email, true);
+      await api.post('/api/admin/deactivate', { email });
+    } catch (e) {
+      console.error(e);
+      alert('Failed to deactivate user.');
+    } finally {
+      setBusy(email, false);
+    }
+  };
+
+  const onAddRole = async (email: string) => {
+    const role = selection[email];
+    if (!role) {
+      alert('Select a role first.');
       return;
     }
-    patients.push({
-      id: patients.length + 1,
-      name: newPatientName.trim(),
-      code: newPatientCode.trim(),
-      doctorId: newPatientDoctorId,
-    });
-    setNewPatientName('');
-    setNewPatientCode('');
-    setNewPatientDoctorId(1);
+    try {
+      setBusy(email, true);
+      await api.post('/api/admin/addroles', { email, roles: [role] });
+      setUsers((prev) => ({
+        ...prev,
+        [email]: Array.from(new Set([...(prev[email] || []), role])),
+      }));
+    } catch (e) {
+      console.error(e);
+      alert('Failed to add role.');
+    } finally {
+      setBusy(email, false);
+    }
+  };
+
+  const onRemoveRole = async (email: string) => {
+    const role = selection[email];
+    if (!role) {
+      alert('Select a role first.');
+      return;
+    }
+    try {
+      setBusy(email, true);
+      await api.post('/api/admin/removeroles', { email, roles: [role] });
+      setUsers((prev) => ({
+        ...prev,
+        [email]: (prev[email] || []).filter((r) => r !== role),
+      }));
+    } catch (e) {
+      console.error(e);
+      alert('Failed to remove role.');
+    } finally {
+      setBusy(email, false);
+    }
   };
 
   return (
-    <div className="p-6">
-      <Link href="/" className="mb-4 inline-block rounded border px-4 py-2">
-        Back to Home
-      </Link>
-      <h1 className="mb-4 text-2xl font-semibold">Admin Dashboard</h1>
-
-      <div className="mb-4">
-        <p>Total Doctors: {doctors.length}</p>
-        <p>Total Nurses: {nurses.length}</p>
-        <p>Total Patients: {patients.length}</p>
-      </div>
-
-      <div className="space-y-4">
-        <div>
-          <h2 className="font-semibold">Add Doctor</h2>
-          <input
-            className="mb-1 w-full border px-2 py-1"
-            placeholder="Doctor Name"
-            value={newDoctorName}
-            onChange={(e) => setNewDoctorName(e.target.value)}
+    <div className="h-full w-full space-y-4 p-6">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Search by email…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-72"
           />
-          <input
-            className="mb-1 w-full border px-2 py-1"
-            placeholder="Doctor Email"
-            value={newDoctorEmail}
-            onChange={(e) => setNewDoctorEmail(e.target.value)}
-          />
-          <button className="rounded border px-4 py-2" onClick={handleAddDoctor}>
-            Add
-          </button>
-        </div>
-
-        <div>
-          <h2 className="font-semibold">Add Nurse</h2>
-          <input
-            className="mb-1 w-full border px-2 py-1"
-            placeholder="Nurse Name"
-            value={newNurseName}
-            onChange={(e) => setNewNurseName(e.target.value)}
-          />
-          <input
-            className="mb-1 w-full border px-2 py-1"
-            placeholder="Nurse Email"
-            value={newNurseEmail}
-            onChange={(e) => setNewNurseEmail(e.target.value)}
-          />
-          <button className="rounded border px-4 py-2" onClick={handleAddNurse}>
-            Add
-          </button>
-        </div>
-
-        <div>
-          <h2 className="font-semibold">Add Patient</h2>
-          <input
-            className="mb-1 w-full border px-2 py-1"
-            placeholder="Patient Name"
-            value={newPatientName}
-            onChange={(e) => setNewPatientName(e.target.value)}
-          />
-          <input
-            className="mb-1 w-full border px-2 py-1"
-            placeholder="Patient Code"
-            value={newPatientCode}
-            onChange={(e) => setNewPatientCode(e.target.value)}
-          />
-          <select
-            className="mb-1 w-full border px-2 py-1"
-            value={newPatientDoctorId}
-            onChange={(e) => setNewPatientDoctorId(Number(e.target.value))}
-          >
-            {doctors.map((doc) => (
-              <option key={doc.id} value={doc.id}>
-                {doc.name}
-              </option>
-            ))}
-          </select>
-          <button className="rounded border px-4 py-2" onClick={handleAddPatient}>
-            Add
-          </button>
+          <Button variant="outline" onClick={refresh} disabled={loading}>
+            Refresh
+          </Button>
         </div>
       </div>
+
+      <Table>
+        <TableCaption>
+          {loading ? 'Loading users…' : error ? error : 'Manage users, roles, and status.'}
+        </TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[320px]">Email</TableHead>
+            <TableHead>Current Roles</TableHead>
+            <TableHead className="w-[260px]">Select Role</TableHead>
+            <TableHead className="w-[220px]">Role Actions</TableHead>
+            <TableHead className="w-[220px] text-right">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map(([email, roles]) => {
+            const uniqueRoles = Array.from(new Set(roles || []));
+            return (
+              <TableRow key={email}>
+                <TableCell className="max-w-[300px] truncate font-medium" title={email}>
+                  {email}
+                </TableCell>
+
+                <TableCell className="space-x-2">
+                  {uniqueRoles.length === 0 ? (
+                    <span className="text-muted-foreground text-sm">No roles</span>
+                  ) : (
+                    uniqueRoles.map((r) => (
+                      <Badge key={r} variant="secondary" className="mb-1">
+                        {r}
+                      </Badge>
+                    ))
+                  )}
+                </TableCell>
+
+                <TableCell>
+                  <Select
+                    value={selection[email] || ''}
+                    onValueChange={(v) => setSelection((prev) => ({ ...prev, [email]: v as Role }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ALL_ROLES.map((r) => (
+                        <SelectItem key={r} value={r}>
+                          {r}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+
+                <TableCell>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => onAddRole(email)} disabled={rowBusy[email]}>
+                      Add
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onRemoveRole(email)}
+                      disabled={rowBusy[email]}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <div className="inline-flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onActivate(email)}
+                      disabled={rowBusy[email]}
+                    >
+                      Activate
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onDeactivate(email)}
+                      disabled={rowBusy[email]}
+                    >
+                      Deactivate
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 }

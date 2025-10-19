@@ -1,12 +1,8 @@
-import Navbar from '@/components/ui/Navbar';
 
 export default function Home() {
   return (
     <>
       <div>
-        <div className="flex justify-end p-3">
-          <Navbar />
-        </div>
         <header className="text-1xl flex justify-center">
           <h1> header </h1>
         </header>

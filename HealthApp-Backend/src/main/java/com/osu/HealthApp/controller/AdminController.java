@@ -1,27 +1,24 @@
 package com.osu.HealthApp.controller;
 
-import com.osu.HealthApp.models.User;
-import com.osu.HealthApp.models.Context;
-import com.osu.HealthApp.models.Role;
 import com.osu.HealthApp.dtos.SimpleUserRequest;
 import com.osu.HealthApp.dtos.UserRoleRequest;
 import com.osu.HealthApp.dtos.UserRoleResponse;
+import com.osu.HealthApp.models.Role;
+import com.osu.HealthApp.models.User;
 import com.osu.HealthApp.repo.UserRepository;
-import com.osu.HealthApp.service.UserService;
 import com.osu.HealthApp.service.AuthService;
-
+import com.osu.HealthApp.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.HashSet;
 import java.util.stream.Collectors;
 
 @RestController

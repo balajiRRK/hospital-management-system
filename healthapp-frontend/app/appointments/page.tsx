@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 
-import { useAuth } from '../providers/AuthProvider';
+import { useAuth } from '../providers/authProvider';
 import AppointmentScheduler from './_components/AppointmentScheduler';
 import MyAppointmentsList from './_components/MyAppointmentsList';
 import MyAppointmentsListSkeleton from './_components/MyAppointmentsListSkeleton';

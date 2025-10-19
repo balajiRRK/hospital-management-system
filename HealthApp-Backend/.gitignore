@@ -34,3 +34,7 @@ build/
 
 ### DS_Store ###
 .DS_Store
+
+
+# Ignore secrets
+application.properties
