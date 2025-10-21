@@ -1,5 +1,6 @@
 package com.osu.HealthApp.models;
 
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -21,4 +22,12 @@ public class Appointment {
     private OffsetDateTime startTime;
     private OffsetDateTime endTime;
     private String reason;
+	
+	@Nullable
+	@Column(nullable=true)
+	private String nurseNotes;
+	
+	@Nullable
+	@Column(nullable=true)
+	private String appointmentResults;
 }

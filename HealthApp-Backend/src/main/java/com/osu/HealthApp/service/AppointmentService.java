@@ -2,6 +2,7 @@ package com.osu.HealthApp.service;
 
 import com.osu.HealthApp.dtos.AppointmentRequest;
 import com.osu.HealthApp.dtos.AppointmentResponse;
+import com.osu.HealthApp.dtos.AppointmentNoteResultRequest;
 import com.osu.HealthApp.dtos.DoctorAvailabilityResponse;
 import com.osu.HealthApp.models.Appointment;
 import com.osu.HealthApp.models.User;
@@ -9,6 +10,7 @@ import com.osu.HealthApp.repo.AppointmentRepository;
 import com.osu.HealthApp.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -112,6 +114,58 @@ public class AppointmentService {
 
         return toResponse(appointmentRepository.save(appointment));
     }
+	
+	@Transactional
+	public void submitNurseNote(AppointmentNoteResultRequest request) {
+		Appointment appointment = appointmentRepository.findById(request.appointmentId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+		
+		appointment.setNurseNotes(request.contents());
+		
+		appointmentRepository.save(appointment);
+	}
+	
+	@Transactional
+	public void submitDoctorResult(AppointmentNoteResultRequest request) {
+		Appointment appointment = appointmentRepository.findById(request.appointmentId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+		
+		Long me = getCurrentUserIdOrThrow();
+		if (!appointment.getDoctor().getId().equals(me)) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the attending doctor can set an appointment's result");
+		}
+		
+		appointment.setAppointmentResults(request.contents());
+		
+		appointmentRepository.save(appointment);
+	}
+	
+	public String getNurseNote(Long appointmentId) {
+		Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+		
+		return appointment.getNurseNotes();
+	}
+	
+	public String getAppointmentResult(Long appointmentId) {
+		Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+		
+		Long me = getCurrentUserIdOrThrow();
+		if (isPatient()) {
+			if (!appointment.getPatient().getId().equals(me)) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the patient attending the appointment can view an appointment's result");
+			}
+		} else if (isStaff()) {
+			if (!appointment.getDoctor().getId().equals(me)) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the attending doctor can view an appointment's result");
+			}
+		} else {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only authorized users can access appointment results");
+		}
+		
+		return appointment.getNurseNotes();
+	}
 
     @Transactional
     public void deleteAppointment(Long appointmentId) {
@@ -237,14 +291,17 @@ public class AppointmentService {
     private boolean isSelf(Long userId) {
         return getCurrentUserIdOrThrow().equals(userId);
     }
-
-    private Long getCurrentUserIdOrThrow() {
+	
+	private User getCurrentUserOrThrow() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName() == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
         return userRepository.findByEmail(auth.getName())
-                .map(User::getId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+    }
+	
+    private Long getCurrentUserIdOrThrow() {
+        return getCurrentUserOrThrow().getId();
     }
 }
