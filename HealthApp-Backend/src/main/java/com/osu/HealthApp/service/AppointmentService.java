@@ -2,9 +2,11 @@ package com.osu.HealthApp.service;
 
 import com.osu.HealthApp.dtos.AppointmentRequest;
 import com.osu.HealthApp.dtos.AppointmentResponse;
+import com.osu.HealthApp.dtos.AppointmentNoteResultRequest;
 import com.osu.HealthApp.dtos.DoctorAvailabilityResponse;
 import com.osu.HealthApp.models.Appointment;
 import com.osu.HealthApp.models.User;
+import com.osu.HealthApp.models.Role;
 import com.osu.HealthApp.repo.AppointmentRepository;
 import com.osu.HealthApp.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -57,7 +59,11 @@ public class AppointmentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid patientId"));
         User doctor = userRepository.findById(request.getDoctorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid doctorId"));
-
+		
+		if (!doctor.getRoles().contains(Role.DOCTOR)) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid doctorId");
+		}
+		
         OffsetDateTime start = request.getStartTime();
         OffsetDateTime end = request.getEndTime();
 
@@ -112,6 +118,58 @@ public class AppointmentService {
 
         return toResponse(appointmentRepository.save(appointment));
     }
+	
+	@Transactional
+	public void submitNurseNote(AppointmentNoteResultRequest request) {
+		Appointment appointment = appointmentRepository.findById(request.appointmentId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+		
+		appointment.setNurseNotes(request.contents());
+		
+		appointmentRepository.save(appointment);
+	}
+	
+	@Transactional
+	public void submitDoctorResult(AppointmentNoteResultRequest request) {
+		Appointment appointment = appointmentRepository.findById(request.appointmentId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+		
+		Long me = getCurrentUserIdOrThrow();
+		if (!appointment.getDoctor().getId().equals(me)) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the attending doctor can set an appointment's result");
+		}
+		
+		appointment.setAppointmentResults(request.contents());
+		
+		appointmentRepository.save(appointment);
+	}
+	
+	public String getNurseNote(Long appointmentId) {
+		Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+		
+		return appointment.getNurseNotes();
+	}
+	
+	public String getAppointmentResult(Long appointmentId) {
+		Appointment appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
+		
+		Long me = getCurrentUserIdOrThrow();
+		if (isPatient()) {
+			if (!appointment.getPatient().getId().equals(me)) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the patient attending the appointment can view an appointment's result");
+			}
+		} else if (isStaff()) {
+			if (!appointment.getDoctor().getId().equals(me)) {
+				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the attending doctor can view an appointment's result");
+			}
+		} else {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only authorized users can access appointment results");
+		}
+		
+		return appointment.getAppointmentResults();
+	}
 
     @Transactional
     public void deleteAppointment(Long appointmentId) {
@@ -231,20 +289,23 @@ public class AppointmentService {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .anyMatch("ROLE_PATIENT"::equals);
+                .anyMatch("CONTEXT_PATIENT"::equals);
     }
 
     private boolean isSelf(Long userId) {
         return getCurrentUserIdOrThrow().equals(userId);
     }
-
-    private Long getCurrentUserIdOrThrow() {
+	
+	private User getCurrentUserOrThrow() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName() == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
         }
         return userRepository.findByEmail(auth.getName())
-                .map(User::getId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+    }
+	
+    private Long getCurrentUserIdOrThrow() {
+        return getCurrentUserOrThrow().getId();
     }
 }
