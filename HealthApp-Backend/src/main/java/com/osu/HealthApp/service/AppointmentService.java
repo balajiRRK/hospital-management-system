@@ -6,11 +6,11 @@ import com.osu.HealthApp.dtos.AppointmentNoteResultRequest;
 import com.osu.HealthApp.dtos.DoctorAvailabilityResponse;
 import com.osu.HealthApp.models.Appointment;
 import com.osu.HealthApp.models.User;
+import com.osu.HealthApp.models.Role;
 import com.osu.HealthApp.repo.AppointmentRepository;
 import com.osu.HealthApp.repo.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -59,7 +59,11 @@ public class AppointmentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid patientId"));
         User doctor = userRepository.findById(request.getDoctorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid doctorId"));
-
+		
+		if (!doctor.getRoles().contains(Role.DOCTOR)) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid doctorId");
+		}
+		
         OffsetDateTime start = request.getStartTime();
         OffsetDateTime end = request.getEndTime();
 
@@ -164,7 +168,7 @@ public class AppointmentService {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only authorized users can access appointment results");
 		}
 		
-		return appointment.getNurseNotes();
+		return appointment.getAppointmentResults();
 	}
 
     @Transactional
@@ -285,7 +289,7 @@ public class AppointmentService {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .anyMatch("ROLE_PATIENT"::equals);
+                .anyMatch("CONTEXT_PATIENT"::equals);
     }
 
     private boolean isSelf(Long userId) {

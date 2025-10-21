@@ -29,27 +29,27 @@ public class AppointmentController {
         return appointmentService.createAppointment(request);
     }
 	
-	@PreAuthorize("allOf(hasRole(\"NURSE\"), hasAuthority(\"CONTEXT_STAFF\"))")
+	@PreAuthorize("hasRole(\"NURSE\") and hasAuthority(\"CONTEXT_STAFF\")")
 	@PostMapping("/submitNote")
 	public ResponseEntity<Void> submitNote(@RequestBody AppointmentNoteResultRequest request) {
 		appointmentService.submitNurseNote(request);
 		return ResponseEntity.ok().build();
 	}
 	
-	@PreAuthorize("allOf(hasRole(\"DOCTOR\"), hasAuthority(\"CONTEXT_STAFF\"))")
+	@PreAuthorize("hasRole(\"DOCTOR\") and hasAuthority(\"CONTEXT_STAFF\")")
 	@PostMapping("/submitResult")
 	public ResponseEntity<Void> submitResult(@RequestBody AppointmentNoteResultRequest request) {
 		appointmentService.submitDoctorResult(request);
 		return ResponseEntity.ok().build();
 	}
 	
-	@PreAuthorize("allOf(hasAnyRole(\"NURSE\", \"DOCTOR\"), hasAuthority(\"CONTEXT_STAFF\"))") //For HIPPA reasons, only relevant medical staff should be able to pull sensitive medical info
+	@PreAuthorize("hasAnyRole(\"NURSE\", \"DOCTOR\") and hasAuthority(\"CONTEXT_STAFF\")") //For HIPPA reasons, only relevant medical staff should be able to pull sensitive medical info
 	@GetMapping("/{appointmentId}/note")
 	public String getNote(@PathVariable Long appointmentId) {
 		return appointmentService.getNurseNote(appointmentId);
 	}
 	
-	@PreAuthorize("anyOf(allOf(hasRole(\"DOCTOR\"), hasAuthority(\"CONTEXT_STAFF\")), allOf(hasRole(\"PATIENT\"), hasAuthority(\"CONTEXT_PATIENT\")))") //For HIPPA reasons, only relevant medical staff (or for the result, the relevant patient) should be able to pull sensitive medical info
+	@PreAuthorize("(hasRole(\"DOCTOR\") and hasAuthority(\"CONTEXT_STAFF\")) or (hasRole(\"PATIENT\") and hasAuthority(\"CONTEXT_PATIENT\"))") //For HIPPA reasons, only relevant medical staff (or for the result, the relevant patient) should be able to pull sensitive medical info
 	@GetMapping("/{appointmentId}/result")
 	public String getResult(@PathVariable Long appointmentId) {
 		return appointmentService.getAppointmentResult(appointmentId);
