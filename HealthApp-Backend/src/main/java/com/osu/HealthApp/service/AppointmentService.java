@@ -224,7 +224,7 @@ public class AppointmentService {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null && auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
-                .anyMatch("ROLE_STAFF"::equals);
+                .anyMatch("CONTEXT_STAFF"::equals);
     }
 
     private boolean isPatient() {
