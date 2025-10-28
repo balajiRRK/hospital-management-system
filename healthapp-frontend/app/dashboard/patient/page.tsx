@@ -2,7 +2,7 @@
 
 import AppointmentScheduler from '@/app/appointments/_components/AppointmentScheduler';
 import MyAppointmentsList from '@/app/appointments/_components/MyAppointmentsList';
-import { useAuth } from '@/app/providers/AuthProvider';
+import { useAuth } from '@/app/providers/authProvider';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function PatientDashboardPage() {

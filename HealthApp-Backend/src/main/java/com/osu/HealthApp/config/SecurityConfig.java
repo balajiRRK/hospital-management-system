@@ -77,7 +77,7 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.GET, "/api/doctor/doctors").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/appointments/doctor/*/availability").permitAll()
-                        .requestMatchers("/api/me").authenticated()
+                        .requestMatchers("/api/users/me").authenticated()
                         .requestMatchers("/api/admin/**")
                         .access(allOf(hasRole("ADMIN"), hasAuthority("CONTEXT_STAFF")))
                         .requestMatchers("/api/doctor/**")
