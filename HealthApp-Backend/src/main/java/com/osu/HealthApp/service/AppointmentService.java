@@ -66,13 +66,10 @@ public class AppointmentService {
         User doctor = userRepository.findById(request.getDoctorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid doctorId"));
 		
-<<<<<<< HEAD
-=======
 		if (!doctor.getRoles().contains(Role.DOCTOR)) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid doctorId");
 		}
 		
->>>>>>> main
         OffsetDateTime start = request.getStartTime();
         OffsetDateTime end = request.getEndTime();
 
