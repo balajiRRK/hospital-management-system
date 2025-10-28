@@ -12,6 +12,34 @@ export type AppointmentResponse = {
 };
 type AvailabilityResponse = { slots: string[] };
 
+export type Gender = "MALE" | "FEMALE" | "OTHER";
+
+export type Address = {
+  streetAddress?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+};
+
+export type EmergencyContact = {
+  name?: string;
+  phoneNumber?: string;
+};
+
+export type UserProfileResponse = {
+  id: number;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phoneNumber?: string;
+  profilePhotoUrl?: string;
+  dateOfBirth?: string;      
+  address?: Address;
+  emergencyContact?: EmergencyContact;
+};
+
+
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => '');
@@ -108,10 +136,13 @@ export async function getPatientEmail(patientId: number): Promise<string> {
   return patient.email;
 }
 
-export async function getUserById(userId: number): Promise<MeResponse> {
-  const res = await fetch(`${API_BASE}/api/users/${userId}`, { credentials: 'include' });
-  return json<MeResponse>(res);
+export async function getUserById(userId: number): Promise<UserProfileResponse> {
+  const res = await fetch(`${API_BASE}/api/users/${userId}`, {
+    credentials: "include",
+  });
+  return json<UserProfileResponse>(res);
 }
+
 
 export async function getUserEmailById(userId: number): Promise<string> {
   const res = await fetch(`${API_BASE}/api/users/${userId}/email`, { credentials: 'include' });

@@ -34,3 +34,4 @@ build/
 
 ### DS_Store ###
 .DS_Store
+HealthApp-Backend/src/main/resources/application.properties
