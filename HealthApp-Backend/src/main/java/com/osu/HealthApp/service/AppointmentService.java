@@ -47,14 +47,20 @@ public class AppointmentService {
             }
             patientId = request.getPatientId();
         }
-
-        if (request.getDoctorId() == null) {
+		
+		Long doctorId = request.getDoctorId();
+        if (doctorId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "doctorId is required");
         }
+		
+		if (patientId == doctorId) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "a patient cannot be their own doctor");
+		}
+		
         if (request.getStartTime() == null || request.getEndTime() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startTime and endTime are required");
         }
-
+		
         User patient = userRepository.findById(patientId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid patientId"));
         User doctor = userRepository.findById(request.getDoctorId())
