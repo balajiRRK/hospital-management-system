@@ -44,6 +44,24 @@ export default function DoctorDashboard() {
   ];
 
   useEffect(() => {
+  async function fetchDoctorResultForAppointment() {
+    if (!selectedAppointmentId) return;
+    try {
+      const res = await getAppointmentResult(selectedAppointmentId);
+      if (res) {
+        setResultText(res); 
+      } else {
+        setResultText(""); 
+      }
+    } catch {
+      setResultText("");
+    }
+  }
+  fetchDoctorResultForAppointment();
+}, [selectedAppointmentId]);
+
+
+  useEffect(() => {
     async function fetchDoctor() {
       const me = await getMe();
       setDoctor(me);
@@ -292,21 +310,24 @@ export default function DoctorDashboard() {
                       <p className="p-2 rounded border bg-gray-50 dark:bg-gray-700">{nurseNote || "No note available"}</p>
                     </div>
 
-                    <div>
-                      <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">Doctor Result</h3>
-                      <textarea
-                        placeholder="Enter result"
-                        className="w-full rounded border p-2 dark:bg-gray-700 dark:text-gray-100"
-                        value={resultText}
-                        onChange={e => setResultText(e.target.value)}
-                      />
-                      <button
-                        className="mt-2 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                        onClick={handleSaveResult}
-                      >
-                        Save Result
-                      </button>
-                    </div>
+                      <div>
+                        <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">Doctor Result</h3>
+
+                        <textarea
+                          placeholder={resultText ? "Edit result" : "Enter result"}
+                          className="w-full rounded border p-2 dark:bg-gray-700 dark:text-gray-100"
+                          value={resultText}
+                          onChange={e => setResultText(e.target.value)}
+                        />
+
+                        <button
+                          className="mt-2 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                          onClick={handleSaveResult}
+                        >
+                          Save Result
+                        </button>
+                      </div>
+
                   </div>
                 )}
               </main>
