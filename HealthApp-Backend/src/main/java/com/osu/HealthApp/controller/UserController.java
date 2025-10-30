@@ -59,7 +59,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    @PreAuthorize("hasRole('STAFF')")
+    @PreAuthorize("hasAuthority('CONTEXT_STAFF')")
     public ResponseEntity<UserProfileResponseDto> getUserById(@PathVariable Long userId) {
         return ResponseEntity.ok(userService.getUserProfileById(userId));
     }
