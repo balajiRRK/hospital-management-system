@@ -2,7 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { User, Calendar as CalendarIcon, LayoutDashboard, ClipboardCheck } from "lucide-react";
-import { getMe, MeResponse, getAppointmentsForDoctor, AppointmentResponse, getUserById, UserProfileResponse } from "../../../lib/api";
+import {
+  getMe,
+  MeResponse,
+  getAppointmentsForDoctor,
+  AppointmentResponse,
+  getUserById,
+  UserProfileResponse,
+  getNurseNote,
+  submitNurseNote,
+} from "../../../lib/api";
 import { Calendar } from "@/components/ui/calendar";
 
 export default function NurseDashboard() {
@@ -16,10 +25,8 @@ export default function NurseDashboard() {
   const [patients, setPatients] = useState<{ id: number }[]>([]);
   const [patientNames, setPatientNames] = useState<Record<number, string>>({});
   const [patientEmails, setPatientEmails] = useState<Record<number, string>>({});
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
   const [visitReason, setVisitReason] = useState("");
-  const [weight, setWeight] = useState("");
-  const [height, setHeight] = useState("");
-  const [bp, setBp] = useState("");
   const [nurseNotes, setNurseNotes] = useState("");
 
   const tabs = [
@@ -56,45 +63,54 @@ export default function NurseDashboard() {
       const names: Record<number, string> = { ...patientNames };
       const emails: Record<number, string> = { ...patientEmails };
       const uniqueIds = Array.from(new Set(appointments.map(a => a.patientId)));
-      await Promise.all(uniqueIds.map(async id => {
-        if (!names[id] || !emails[id]) {
-          try {
-            const user: UserProfileResponse = await getUserById(id);
-            names[id] = `${user.firstName || ""} ${user.lastName || ""}`.trim() || "N/A";
-            emails[id] = user.email || "N/A";
-          } catch {
-            names[id] = "N/A";
-            emails[id] = "N/A";
+      await Promise.all(
+        uniqueIds.map(async id => {
+          if (!names[id] || !emails[id]) {
+            try {
+              const user: UserProfileResponse = await getUserById(id);
+              names[id] = `${user.firstName || ""} ${user.lastName || ""}`.trim() || "N/A";
+              emails[id] = user.email || "N/A";
+            } catch {
+              names[id] = "N/A";
+              emails[id] = "N/A";
+            }
           }
-        }
-      }));
+        })
+      );
       setPatientNames(names);
       setPatientEmails(emails);
     }
     fetchPatientInfo();
   }, [appointments]);
 
+  useEffect(() => {
+    async function fetchNurseNoteForAppointment() {
+      if (!selectedAppointmentId) return;
+      try {
+        const note = await getNurseNote(selectedAppointmentId);
+        setNurseNotes(note || "");
+        const app = appointments.find(a => a.id === selectedAppointmentId);
+        setVisitReason(app?.reason || "");
+      } catch {
+        setNurseNotes("");
+        setVisitReason("");
+      }
+    }
+    fetchNurseNoteForAppointment();
+  }, [selectedAppointmentId, appointments]);
+
   const filteredPatients = patients.filter(p =>
     (patientNames[p.id] || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleSubmitData = async () => {
-    if (!selectedPatient || !visitReason || !weight || !height || !bp || !nurseNotes) return;
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/nurse-data`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({
-        nurseId: nurse?.id,
-        patientId: selectedPatient,
-        visitReason,
-        weight,
-        height,
-        bloodPressure: bp,
-        notes: nurseNotes,
-      }),
+    if (!selectedAppointmentId) return;
+    await submitNurseNote({
+      appointmentId: selectedAppointmentId,
+      contents: nurseNotes || "",
     });
-    setVisitReason(""); setWeight(""); setHeight(""); setBp(""); setNurseNotes("");
+    alert("Nurse notes saved successfully");
+    setNurseNotes("");
   };
 
   const todayStr = new Date().toISOString().split("T")[0];
@@ -107,7 +123,14 @@ export default function NurseDashboard() {
           {tabs.map(tab => (
             <button
               key={tab.name}
-              onClick={() => { setActiveTab(tab.name); setSelectedPatient(null); setSelectedPatientProfile(null); }}
+              onClick={() => {
+                setActiveTab(tab.name);
+                setSelectedPatient(null);
+                setSelectedPatientProfile(null);
+                setSelectedAppointmentId(null);
+                setVisitReason("");
+                setNurseNotes("");
+              }}
               className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left ${
                 activeTab === tab.name
                   ? "bg-green-600 text-white"
@@ -156,14 +179,12 @@ export default function NurseDashboard() {
           <main className="flex gap-6 p-8">
             <div className="w-1/3 flex flex-col rounded-lg bg-white p-4 shadow dark:bg-gray-800">
               <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Select Date</h2>
-              <div className="flex-1">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  className="h-full w-full rounded-lg border p-2"
-                />
-              </div>
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="h-full w-full rounded-lg border p-2"
+              />
             </div>
             <div className="flex-1 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
               <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">Appointments</h2>
@@ -217,11 +238,14 @@ export default function NurseDashboard() {
                       }`}
                       onClick={async () => {
                         setSelectedPatient(p.id);
+                        setSelectedAppointmentId(null);
+                        setVisitReason("");
+                        setNurseNotes("");
                         try {
                           const profile = await getUserById(p.id);
-                          setSelectedPatientProfile(profile || { id: p.id, firstName: "N/A", lastName: "N/A", dateOfBirth: "N/A", phoneNumber: "N/A", email: "N/A", address: null, emergencyContact: null });
+                          setSelectedPatientProfile(profile || { id: p.id, firstName: "N/A", lastName: "N/A", email: "N/A", phoneNumber: "N/A", dateOfBirth: "N/A", address: null, emergencyContact: null });
                         } catch {
-                          setSelectedPatientProfile({ id: p.id, firstName: "N/A", lastName: "N/A", dateOfBirth: "N/A", phoneNumber: "N/A", email: "N/A", address: null, emergencyContact: null });
+                          setSelectedPatientProfile({ id: p.id, firstName: "N/A", lastName: "N/A", email: "N/A", phoneNumber: "N/A", dateOfBirth: "N/A", address: null, emergencyContact: null });
                         }
                       }}
                     >
@@ -232,19 +256,52 @@ export default function NurseDashboard() {
                 }
               </ul>
             </div>
-            <div className="flex-1 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+
+            <div className="flex-1 space-y-4">
               {activeTab === "Patient Data" && selectedPatientProfile ? (
-                <div className="space-y-2">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Enter Patient Data</h2>
-                  <input placeholder="Visit Reason" className="mb-2 w-full rounded border px-2 py-2" value={visitReason} onChange={e => setVisitReason(e.target.value)} />
-                  <input placeholder="Weight" className="mb-2 w-full rounded border px-2 py-2" value={weight} onChange={e => setWeight(e.target.value)} />
-                  <input placeholder="Height" className="mb-2 w-full rounded border px-2 py-2" value={height} onChange={e => setHeight(e.target.value)} />
-                  <input placeholder="Blood Pressure" className="mb-2 w-full rounded border px-2 py-2" value={bp} onChange={e => setBp(e.target.value)} />
-                  <textarea placeholder="Nurse Notes" className="mb-2 w-full rounded border px-2 py-2" value={nurseNotes} onChange={e => setNurseNotes(e.target.value)} />
-                  <button onClick={handleSubmitData} className="rounded border bg-green-600 px-4 py-2 text-white hover:bg-green-700">Save Data</button>
-                </div>
+                <>
+                  <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+                    <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">Patient Appointments</h2>
+                    <ul className="space-y-2 max-h-60 overflow-y-auto">
+                      {appointments
+                        .filter(a => a.patientId === selectedPatientProfile.id)
+                        .map(app => (
+                          <li
+                            key={app.id}
+                            className={`cursor-pointer rounded p-2 ${
+                              selectedAppointmentId === app.id ? "bg-green-100 dark:bg-green-700" : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                            }`}
+                            onClick={() => setSelectedAppointmentId(app.id)}
+                          >
+                            <p className="text-sm text-gray-700 dark:text-gray-200">{new Date(app.startTime).toLocaleString()}</p>
+                            <p className="font-medium text-gray-900 dark:text-gray-100">{app.reason}</p>
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+
+                  {selectedAppointmentId && (
+                    <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+                      <p className="mb-2 font-medium text-gray-900 dark:text-gray-100">
+                        Visit Reason: {visitReason}
+                      </p>
+                      <textarea
+                        placeholder={nurseNotes || "Enter nurse notes here..."}
+                        className="w-full rounded border p-2 dark:bg-gray-700 dark:text-gray-100"
+                        value={nurseNotes}
+                        onChange={e => setNurseNotes(e.target.value)}
+                      />
+                      <button
+                        onClick={handleSubmitData}
+                        className="mt-2 rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+                      >
+                        Save Notes
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : selectedPatientProfile ? (
-                <div className="space-y-2">
+                <div className="space-y-2 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Patient Details</h2>
                   <p><strong>Name:</strong> {selectedPatientProfile.firstName || "N/A"} {selectedPatientProfile.lastName || "N/A"}</p>
                   <p><strong>Email:</strong> {selectedPatientProfile.email || "N/A"}</p>

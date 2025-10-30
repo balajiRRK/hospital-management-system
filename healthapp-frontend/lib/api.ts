@@ -5,6 +5,7 @@ export type Doctor = { id: number; email: string; name?: string };
 export type AppointmentResponse = {
   id: number;
   doctorId: number;
+  patientId: number;
   doctorName?: string;
   startTime: string;
   endTime: string;
@@ -85,14 +86,14 @@ export async function createAppointment(input: {
   startTime: string;
   endTime: string;
   reason: string;
-}): Promise<void> {
+}): Promise<AppointmentResponse> {
   const res = await fetch(`${API_BASE}/api/appointments`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     credentials: 'include',
     body: JSON.stringify(input),
   });
-  await json(res);
+  return json<AppointmentResponse>(res);
 }
 
 export async function apiLogout(): Promise<void> {
@@ -119,17 +120,16 @@ export async function getAppointmentsForDoctor(doctorId: number): Promise<Appoin
 export async function getPatientsForDoctorFromAppointments(doctorId: number): Promise<number[]> {
   const appointments = await getAppointmentsForDoctor(doctorId);
 
-  const patientIds = Array.from(new Set(appointments.map((a) => a.id)));
+  const patientIds = Array.from(new Set(appointments.map((a) => a.patientId)));
 
   return patientIds;
 }
 
-export async function getPatientById(patientId: number): Promise<MeResponse> {
-  const res = await fetch(`${API_BASE}/api/users/${patientId}`, {
-    credentials: 'include',
-  });
-  return json<MeResponse>(res);
+export async function getPatientById(patientId: number): Promise<UserProfileResponse> {
+  const res = await fetch(`${API_BASE}/api/users/${patientId}`, { credentials: 'include' });
+  return json<UserProfileResponse>(res);
 }
+
 
 export async function getPatientEmail(patientId: number): Promise<string> {
   const patient = await getPatientById(patientId);
@@ -147,4 +147,64 @@ export async function getUserById(userId: number): Promise<UserProfileResponse> 
 export async function getUserEmailById(userId: number): Promise<string> {
   const res = await fetch(`${API_BASE}/api/users/${userId}/email`, { credentials: 'include' });
   return json<string>(res);
+}
+
+// struc for the request body used to submit notse/results
+export type AppointmentNoteResultRequest = {
+  appointmentId: number;
+  contents: string; 
+};
+
+export async function submitNurseNote(request: AppointmentNoteResultRequest): Promise<void> {
+const res = await fetch(`${API_BASE}/api/appointments/submitNote`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(request),
+  });
+
+  const text = await res.text().catch(() => "");
+  if (!res.ok) {
+    throw new Error(text || `${res.status} ${res.statusText}`);
+  }
+}
+
+export async function submitDoctorResult(request: AppointmentNoteResultRequest): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/appointments/submitResult`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(request),
+  });
+
+  const text = await res.text().catch(() => "");
+  if (!res.ok) {
+    throw new Error(text || `${res.status} ${res.statusText}`);
+  }
+}
+
+export async function getNurseNote(appointmentId: number): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/appointments/${appointmentId}/note`, {
+    credentials: "include",
+  });
+
+  const text = await res.text().catch(() => "");
+  if (!res.ok) {
+    throw new Error(text || `${res.status} ${res.statusText}`);
+  }
+
+  return text;
+}
+
+export async function getAppointmentResult(appointmentId: number): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/appointments/${appointmentId}/result`, {
+    credentials: "include",
+  });
+
+  const text = await res.text().catch(() => "");
+  if (!res.ok) {
+    throw new Error(text || `${res.status} ${res.statusText}`);
+  }
+
+  return text;
 }

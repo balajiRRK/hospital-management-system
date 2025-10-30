@@ -37,4 +37,4 @@ build/
 
 
 # Ignore secrets
-application.properties
+/application.properties
