@@ -125,12 +125,11 @@ export default function DoctorDashboard() {
     (patientNames[p.id] || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSaveResult = async () => {
-    if (!selectedAppointmentId) return;
-    await submitDoctorResult({ appointmentId: selectedAppointmentId, contents: resultText || "" });
-    setResultText("");
-    alert("Result saved successfully");
-  };
+const handleSaveResult = async () => {
+  if (!selectedAppointmentId) return;
+  await submitDoctorResult({ appointmentId: selectedAppointmentId, contents: resultText || "" });
+  alert("Result saved successfully");
+};
 
   const todayStr = new Date().toISOString().split("T")[0];
   const todaysAppointments = appointments.filter(a => a.startTime.startsWith(todayStr));
