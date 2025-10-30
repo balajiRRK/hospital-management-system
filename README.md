@@ -18,7 +18,7 @@ The system supports **multi-role access** with **role-based views and permission
 
 ### **Technology Stack**  
   - **Backend**: Spring Boot (Java)
-  - **Frontend**: Next.js
+  - **Frontend**: Next.js (React, TypeScript, Tailwind CSS)
   - **Deployment**: AWS 
   - **Containerization**: Docker
   - **Version Control**: Git
