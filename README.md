@@ -10,14 +10,42 @@ The system supports **multi-role access** with **role-based views and permission
 -  **Secure Login & Session Management**  
   Encrypted authentication with role-based access control.
 
-##  **Role-Specific Dashboards**  
+###  **Role-Specific Dashboards**  
   - **Doctors**: Manage patient data & records.  
   - **Patients**: Book and track appointments.  
   - **Nurses**: Support patient care workflows.  
   - **Admins**: Access audit logs and reporting views.
 
-## **Technology Stack**  
+### **Technology Stack**  
   - **Backend**: Spring Boot (Java)
   - **Frontend**: Nextjs
   - **Deployment**: AWS 
   - **Version Control**:Git
+
+## Usage
+
+1. Clone this repository:
+    ```
+    git clone https://github.com/Royalross/HealthApp.git
+    cd repo-exporter
+    ```
+
+2. Either you can run both the frontend + the backend in Docker:
+   ```
+   docker compose up
+   ```
+   
+   Or you can just run the backend in Docker:
+
+   Run this in a bash terminal:
+   ```
+   cd healthapp-frontend
+   npm install
+   NEXT_PUBLIC_API_URL=http://localhost:8080 npm run dev
+   ```
+   Run this in another terminal:
+   ```
+   docker compose up backend
+   ```
+
+3. Navigate to the website on your browser through this link [localhost:3000 ](http://localhost:3000/).
