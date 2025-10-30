@@ -8,7 +8,7 @@ The system supports **multi-role access** with **role-based views and permission
 ##  Features
 
 -  **Secure Login & Session Management**  
-  Encrypted authentication with role-based access control.
+  Encrypted authentication with role-based access control to conform to HIPAA requirements.
 
 ###  **Role-Specific Dashboards**  
   - **Doctors**: Manage patient data & records.  
@@ -18,9 +18,10 @@ The system supports **multi-role access** with **role-based views and permission
 
 ### **Technology Stack**  
   - **Backend**: Spring Boot (Java)
-  - **Frontend**: Nextjs
+  - **Frontend**: Next.js
   - **Deployment**: AWS 
-  - **Version Control**:Git
+  - **Containerization**: Docker
+  - **Version Control**: Git
 
 ## Usage
 
