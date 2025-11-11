@@ -26,10 +26,10 @@ export default function Navbar() {
   };
 
   return (
-    <div className="flex items-center justify-between w-full px-4 py-2 border-b bg-white">
+    <div className="flex w-full items-center justify-between border-b bg-white px-4 py-2">
       <Link
         href="/"
-        className="flex items-center gap-2 text-xl font-bold hover:text-blue-600 transition-colors"
+        className="flex items-center gap-2 text-xl font-bold transition-colors hover:text-blue-600"
       >
         <Image
           src="/favicon.ico"
@@ -53,7 +53,10 @@ export default function Navbar() {
               <NavigationMenuItem>
                 <Link href="/profile" passHref>
                   <Avatar>
-                    <AvatarImage src={user.profilePhotoUrl || undefined} alt="User profile avatar" />
+                    <AvatarImage
+                      src={user.profilePhotoUrl || undefined}
+                      alt="User profile avatar"
+                    />
                     <AvatarFallback>{getInitials()}</AvatarFallback>
                   </Avatar>
                 </Link>

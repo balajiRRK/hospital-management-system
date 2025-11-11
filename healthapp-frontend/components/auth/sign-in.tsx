@@ -70,7 +70,6 @@ export default function SignIn() {
         return;
       }
 
-
       await refresh();
 
       // Allowed -> redirect based on what they chose

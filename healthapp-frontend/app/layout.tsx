@@ -30,7 +30,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-
         <AuthProvider>
           {/* Have to look to see if this the right way  */}
           <div className="flex justify-end p-3">

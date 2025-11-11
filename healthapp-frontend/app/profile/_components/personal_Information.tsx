@@ -48,9 +48,9 @@ export default function PersonalInformation() {
       setProfile((prev) =>
         prev
           ? ({
-            ...prev,
-            [parent]: { ...(prev[parent] as unknown as Record<string, unknown>), [child]: value },
-          } as UserProfile)
+              ...prev,
+              [parent]: { ...(prev[parent] as unknown as Record<string, unknown>), [child]: value },
+            } as UserProfile)
           : prev,
       );
     } else {

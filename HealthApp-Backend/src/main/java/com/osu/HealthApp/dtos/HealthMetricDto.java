@@ -1,9 +1,10 @@
 package com.osu.HealthApp.dtos;
 
-import lombok.Data;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+import java.math.BigDecimal;
 
-@Data
-public class HealthMetricDto {
-    private Double weight;
-    private Double height;
-}
+public record HealthMetricDto(
+        @NotNull @DecimalMin(value = "0.0", inclusive = false) BigDecimal weight,
+        @NotNull @DecimalMin(value = "0.0", inclusive = false) BigDecimal height
+) {}

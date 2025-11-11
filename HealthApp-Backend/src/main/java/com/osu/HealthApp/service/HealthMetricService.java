@@ -2,12 +2,14 @@ package com.osu.HealthApp.service;
 
 import com.osu.HealthApp.models.HealthMetric;
 import com.osu.HealthApp.models.User;
-
 import com.osu.HealthApp.dtos.HealthMetricDto;
 import com.osu.HealthApp.repo.HealthMetricRepository;
 import com.osu.HealthApp.repo.UserRepository;
-import jakarta.transaction.Transactional;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -23,21 +25,26 @@ public class HealthMetricService {
     }
 
     @Transactional
-    public HealthMetric addHealthMetricForUser(Long userId, HealthMetricDto metricDto) {
+    public HealthMetric addHealthMetricForUser(Long userId, HealthMetricDto dto) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "user not found"));
 
-        HealthMetric newMetric = new HealthMetric();
-        newMetric.setUser(user);
-        newMetric.setWeight(metricDto.getWeight());
-        newMetric.setHeight(metricDto.getHeight());
+        BigDecimal w = dto.weight();
+        BigDecimal h = dto.height();
 
-        // Calculate and set BMI
-        if (metricDto.getHeight() != null && metricDto.getHeight() > 0 && metricDto.getWeight() != null) {
-            BigDecimal bmi = BigDecimal.valueOf(metricDto.getWeight() / (metricDto.getHeight() * metricDto.getHeight()));
-            newMetric.setBmi(bmi.setScale(2, RoundingMode.HALF_UP).doubleValue());
+        // in case validation didn’t run
+        if (w == null || h == null || w.signum() <= 0 || h.signum() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "weight and height must be > 0");
         }
 
-        return healthMetricRepository.save(newMetric);
+        BigDecimal bmi = w.divide(h.multiply(h), 2, RoundingMode.HALF_UP);
+
+        HealthMetric m = new HealthMetric();
+        m.setUser(user);
+        m.setWeight(w.doubleValue());
+        m.setHeight(h.doubleValue());
+        m.setBmi(bmi.doubleValue());
+
+        return healthMetricRepository.save(m);
     }
 }
