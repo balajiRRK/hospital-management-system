@@ -1,5 +1,6 @@
 package com.osu.HealthApp.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.Instant;
@@ -14,11 +15,12 @@ public class HealthMetric {
 
     private Double weight;
     private Double height;
-    private Double bmi;    // Calculated Body Mass Index
+    private Double bmi;
 
     private Instant recordedAt = Instant.now();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore
     private User user;
 }

@@ -13,7 +13,7 @@ export type AppointmentResponse = {
 };
 type AvailabilityResponse = { slots: string[] };
 
-export type Gender = "MALE" | "FEMALE" | "OTHER";
+export type Gender = 'MALE' | 'FEMALE' | 'OTHER';
 
 export type Address = {
   streetAddress?: string;
@@ -35,11 +35,10 @@ export type UserProfileResponse = {
   email: string;
   phoneNumber?: string;
   profilePhotoUrl?: string;
-  dateOfBirth?: string;      
+  dateOfBirth?: string;
   address?: Address;
   emergencyContact?: EmergencyContact;
 };
-
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -130,7 +129,6 @@ export async function getPatientById(patientId: number): Promise<UserProfileResp
   return json<UserProfileResponse>(res);
 }
 
-
 export async function getPatientEmail(patientId: number): Promise<string> {
   const patient = await getPatientById(patientId);
   return patient.email;
@@ -138,11 +136,10 @@ export async function getPatientEmail(patientId: number): Promise<string> {
 
 export async function getUserById(userId: number): Promise<UserProfileResponse> {
   const res = await fetch(`${API_BASE}/api/users/${userId}`, {
-    credentials: "include",
+    credentials: 'include',
   });
   return json<UserProfileResponse>(res);
 }
-
 
 export async function getUserEmailById(userId: number): Promise<string> {
   const res = await fetch(`${API_BASE}/api/users/${userId}/email`, { credentials: 'include' });
@@ -152,18 +149,18 @@ export async function getUserEmailById(userId: number): Promise<string> {
 // struc for the request body used to submit notse/results
 export type AppointmentNoteResultRequest = {
   appointmentId: number;
-  contents: string; 
+  contents: string;
 };
 
 export async function submitNurseNote(request: AppointmentNoteResultRequest): Promise<void> {
-const res = await fetch(`${API_BASE}/api/appointments/submitNote`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
+  const res = await fetch(`${API_BASE}/api/appointments/submitNote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(request),
   });
 
-  const text = await res.text().catch(() => "");
+  const text = await res.text().catch(() => '');
   if (!res.ok) {
     throw new Error(text || `${res.status} ${res.statusText}`);
   }
@@ -171,13 +168,13 @@ const res = await fetch(`${API_BASE}/api/appointments/submitNote`, {
 
 export async function submitDoctorResult(request: AppointmentNoteResultRequest): Promise<void> {
   const res = await fetch(`${API_BASE}/api/appointments/submitResult`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(request),
   });
 
-  const text = await res.text().catch(() => "");
+  const text = await res.text().catch(() => '');
   if (!res.ok) {
     throw new Error(text || `${res.status} ${res.statusText}`);
   }
@@ -185,10 +182,10 @@ export async function submitDoctorResult(request: AppointmentNoteResultRequest):
 
 export async function getNurseNote(appointmentId: number): Promise<string> {
   const res = await fetch(`${API_BASE}/api/appointments/${appointmentId}/note`, {
-    credentials: "include",
+    credentials: 'include',
   });
 
-  const text = await res.text().catch(() => "");
+  const text = await res.text().catch(() => '');
   if (!res.ok) {
     throw new Error(text || `${res.status} ${res.statusText}`);
   }
@@ -198,10 +195,10 @@ export async function getNurseNote(appointmentId: number): Promise<string> {
 
 export async function getAppointmentResult(appointmentId: number): Promise<string> {
   const res = await fetch(`${API_BASE}/api/appointments/${appointmentId}/result`, {
-    credentials: "include",
+    credentials: 'include',
   });
 
-  const text = await res.text().catch(() => "");
+  const text = await res.text().catch(() => '');
   if (!res.ok) {
     throw new Error(text || `${res.status} ${res.statusText}`);
   }

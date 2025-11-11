@@ -56,7 +56,6 @@ export default function SignUp() {
       );
 
       router.push('/dashboard/patient');
-
     } catch (err: unknown) {
       let msg = 'Sign up failed. Please try again.';
       if (axios.isAxiosError(err)) {

@@ -3,7 +3,13 @@
 import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import React, {
-  createContext, useCallback, useContext, useEffect, useMemo, useRef, useState,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from 'react';
 
 import { dtoToUi, UserProfile, UserProfileResponseDto } from '@/lib/types';
@@ -30,7 +36,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+    },
+    [],
+  );
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -46,7 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -60,8 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (email: string, password: string, role?: string) => {
       const base = process.env.NEXT_PUBLIC_API_URL;
       if (!base) throw new Error('Missing NEXT_PUBLIC_API_URL');
-      const rolePath =
-        role === 'patient' ? '/api/auth/loginpatient' : '/api/auth/loginstaff';
+      const rolePath = role === 'patient' ? '/api/auth/loginpatient' : '/api/auth/loginstaff';
       await api.post(rolePath, { email, password });
       await refresh();
     },
@@ -75,7 +87,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Logout failed:', e);
     } finally {
       if (mountedRef.current) setUser(null);
-      router.push('/');     // soft nav
+      router.push('/'); // soft nav
       router.refresh();
     }
   }, [router]);

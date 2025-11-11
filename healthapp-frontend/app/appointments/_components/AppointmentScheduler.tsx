@@ -18,9 +18,7 @@ import { fmtHumanDate, yyyyMmDd } from '@/lib/utils';
 
 const APPOINTMENT_DURATION_MS = 60 * 60 * 1000; // 60 minutes
 
-
 export default function AppointmentScheduler() {
-
   // Data fetched from the server
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
