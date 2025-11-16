@@ -166,11 +166,7 @@ public class AppointmentService {
 			if (!appointment.getPatient().getId().equals(me)) {
 				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the patient attending the appointment can view an appointment's result");
 			}
-		} else if (isStaff()) {
-			if (!appointment.getDoctor().getId().equals(me)) {
-				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the attending doctor can view an appointment's result");
-			}
-		} else {
+		} else if (!isStaff()) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only authorized users can access appointment results");
 		}
 		
