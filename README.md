@@ -1,20 +1,33 @@
-#  HealthApp
+# HealthApp
 
-A simple **health management application** targeted for **doctors, nurses, patients, and admins**.  
-The system supports **multi-role access** with **role-based views and permissions**, ensuring secure and efficient management of healthcare workflows.  
+A simple **health management application** designed for **doctors, nurses, patients, and administrators**.  
+The system includes **multi-role access**, **role-based views and permissions**, and **secure authentication**, creating an eficient, secure and HIPAA-aligned workflow environment for all users of the health application.  
 
 ---
 
-##  Features
+## Features
 
--  **Secure Login & Session Management**  
-  Encrypted authentication with role-based access control to conform to HIPAA requirements.
+### Secure Login & Session Management  
+- Encrypted authentication with role-based access control
+- JWT-based session management for added security
+- Designed with HIPAA compliance principles as top priority
 
-###  **Role-Specific Dashboards**  
-  - **Doctors**: Manage patient data & records.  
-  - **Patients**: Book and track appointments.  
-  - **Nurses**: Support patient care workflows.  
-  - **Admins**: Access audit logs and reporting views.
+### Role-Specific Dashboards
+
+#### Doctors
+- View and manage patient records
+
+#### Nurses
+- Support patient care workflows
+- Update patient notes with observations such as vitals
+
+#### Patients
+- Book and track appointments
+- View personal medical info and update personal information (address, weight, email, etc.)
+
+#### Admins
+- Access audit logs
+- Review reported information (view patient appointment notes) and application-level insights (view amount of patients and doctors)
 
 ### **Technology Stack**  
   - **Backend**: Spring Boot (Java)
@@ -29,7 +42,7 @@ The system supports **multi-role access** with **role-based views and permission
 1. Clone this repository:
     ```
     git clone https://github.com/Royalross/HealthApp.git
-    cd repo-exporter
+    cd HealthApp
     ```
 
 2. Either you can run both the frontend + the backend in Docker:
