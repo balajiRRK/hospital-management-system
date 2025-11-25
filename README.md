@@ -37,6 +37,12 @@ The system includes **multi-role access**, **role-based views and permissions**,
   - **Containerization**: Docker
   - **Version Control**: Git
 
+## Repo Overview
+
+- HealthApp-Backend - All source files for the app's backend API
+- Healthapp-frontend - All source files for the app's user-facing browser frontend
+- .env - App launch configuration file
+
 ## Usage
 
 1. Clone this repository:
@@ -45,22 +51,24 @@ The system includes **multi-role access**, **role-based views and permissions**,
     cd HealthApp
     ```
 
-2. Either you can run both the frontend + the backend in Docker:
-   ```
-   docker compose up
-   ```
-   
-   Or you can just run the backend in Docker:
+2. Run the app with one of the following methods:
+  - Normal Usage (Full Application in Docker):
+    ```
+    docker compose up
+    ```
 
-   Run this in a bash terminal:
-   ```
-   cd healthapp-frontend
-   npm install
-   NEXT_PUBLIC_API_URL=http://localhost:8080 npm run dev
-   ```
-   Run this in another terminal:
-   ```
-   docker compose up backend
-   ```
+  - Alternate Hybrid Usage For Development (Frontend local, backend in Docker):
+
+    Run this in a bash terminal:
+    ```
+    cd healthapp-frontend
+    npm install
+    NEXT_PUBLIC_API_URL=http://localhost:8080 npm run dev
+    ```
+
+    Run this in another terminal:
+    ```
+    docker compose up backend
+    ```
 
 3. Navigate to the website on your browser through this link [localhost:3000 ](http://localhost:3000/).
