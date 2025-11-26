@@ -3,6 +3,7 @@ package com.osu.HealthApp.models;
 import jakarta.persistence.*;
 import lombok.Data;
 
+/** Optional emergency contact stored alongside the user. */
 @Entity
 @Table(name = "emergency_contacts")
 @Data

@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.time.OffsetDateTime;
 
+/** Appointment between a patient and doctor plus optional staff notes/results. */
 @Entity
 @Data
 public class Appointment {

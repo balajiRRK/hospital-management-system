@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import java.time.LocalDate;
 import java.util.List;
 
+/** Appointment endpoints: booking, updates, staff notes/results, and availability. */
 @RestController
 @RequestMapping("/api/appointments")
 public class AppointmentController {
@@ -23,6 +24,7 @@ public class AppointmentController {
         this.appointmentService = s;
     }
 
+    /** Create a new appointment; patient context auto-fills patientId. */
     @PostMapping
     public AppointmentResponse create(@RequestBody AppointmentRequest request) {
         return appointmentService.createAppointment(request);
@@ -61,16 +63,19 @@ public class AppointmentController {
         return appointmentService.getAppointmentResult(appointmentId);
     }
 
+    /** Patient history lookup; patients restricted to their own data in service layer. */
     @GetMapping("/patient/{patientId}")
     public List<AppointmentResponse> getForPatient(@PathVariable Long patientId) {
         return appointmentService.getAppointmentsForPatient(patientId);
     }
 
+    /** Staff view of appointments for a specific doctor. */
     @GetMapping("/doctor/{doctorId}")
     public List<AppointmentResponse> getForDoctor(@PathVariable Long doctorId) {
         return appointmentService.getAppointmentsForDoctor(doctorId);
     }
 
+    /** Public read-only availability for a doctor on a given date. */
     @GetMapping("/doctor/{doctorId}/availability")
     public DoctorAvailabilityResponse availability(
             @PathVariable Long doctorId,
@@ -79,6 +84,7 @@ public class AppointmentController {
         return appointmentService.getAvailabilityForDoctor(doctorId, LocalDate.parse(date));
     }
 
+    /** Admin/staff list of all appointments. */
     @GetMapping
     public List<AppointmentResponse> getAll() {
         return appointmentService.getAllAppointments();

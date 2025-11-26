@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import java.time.Instant;
 
+
 @Entity
 @Table(name = "health_metrics")
 @Data

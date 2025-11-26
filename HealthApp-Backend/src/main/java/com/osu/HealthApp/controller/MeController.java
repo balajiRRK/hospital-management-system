@@ -14,6 +14,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+/** endpoint to return the authenticated user's identity and authorities. */
 @RestController
 @RequestMapping("/api")
 public class MeController {
@@ -24,6 +25,7 @@ public class MeController {
         this.userRepository = userRepository;
     }
 
+    /** Returns id/email/authorities for the current session; 401 if unauthenticated. */
     @GetMapping("/me")
     public ResponseEntity<MeResponse> me(Authentication auth) {
         if (auth == null || auth.getName() == null) {

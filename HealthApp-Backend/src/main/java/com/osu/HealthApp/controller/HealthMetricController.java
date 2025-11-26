@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/** Allows users to post new health metrics that are attached to a user record. */
 @RestController
 @RequestMapping("/api/users/{userId}/health-metrics")
 public class HealthMetricController {

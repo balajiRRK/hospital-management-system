@@ -30,6 +30,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * User-facing operations: profile retrieval/updates, role management, and profile photo handling.
+ * Keeps all validation in one place.
+ */
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -60,6 +64,7 @@ public class UserService {
         return toUserProfileResponseDto(user);
     }
 
+    /** Map entity to a DTO that is safe to expose to the client. */
     private UserProfileResponseDto toUserProfileResponseDto(User user) {
         UserProfileResponseDto dto = new UserProfileResponseDto();
         dto.setId(user.getId());
@@ -135,6 +140,7 @@ public class UserService {
         return newRoles;
     }
 
+    /** Update the mutable profile fields and nested address/emergency contact. */
     @Transactional
     public UserProfileResponseDto updateUserProfile(Long userId, UserProfileDto profileDto) {
         User user = getUserById(userId);
@@ -177,6 +183,10 @@ public class UserService {
     }
 
 
+    /**
+     * Store the uploaded profile photo in S3 and return a public URL.
+     * The bucket/key structure keeps files scoped per-user.
+     */
     @Transactional
     public String updateProfilePhoto(Long userId, MultipartFile file) {
         User user = getUserById(userId);
@@ -220,6 +230,9 @@ public class UserService {
     }
 
 
+    /**
+     * Validate the current password before setting a new hash.
+     */
     @Transactional
     public void updateUserPassword(Long userId, PasswordResetDto passwordDto) {
         User user = getUserById(userId);

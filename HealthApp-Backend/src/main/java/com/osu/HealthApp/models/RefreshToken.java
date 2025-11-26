@@ -6,6 +6,7 @@ import lombok.Setter;
 
 import java.time.Instant;
 
+/** Persisted refresh token metadata so we can revoke and rotate by jti. */
 @Entity
 @Table(name = "refresh_tokens", indexes = @Index(name="idx_rt_user", columnList="user_id"))
 @Getter @Setter

@@ -21,6 +21,10 @@ import java.time.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Central booking logic with both business rules (slot length, buffers, hours)
+ * and authorization checks that differentiate staff vs patient behavior.
+ */
 @Service
 @RequiredArgsConstructor
 public class AppointmentService {
@@ -38,6 +42,7 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse createAppointment(AppointmentRequest request) {
+        // Patients can only book for themselves; staff can supply a patientId
         Long patientId;
         if (isPatient()) {
             patientId = getCurrentUserIdOrThrow();
@@ -77,6 +82,7 @@ public class AppointmentService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment must be exactly " + SLOT_MINUTES + " minutes long");
         }
 
+        // Enforce clinic buffer rules before saving
         ensureDoctorSlotFitsPolicy(doctor.getId(), start, end, null);
 
         Appointment appointment = new Appointment();
@@ -94,6 +100,7 @@ public class AppointmentService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
 
+        // Patients cannot change attending doctor/patient; they may only move their own slot
         if (isPatient()) {
             Long me = getCurrentUserIdOrThrow();
             if (!appointment.getPatient().getId().equals(me)) {
@@ -130,6 +137,7 @@ public class AppointmentService {
 		Appointment appointment = appointmentRepository.findById(request.appointmentId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
 		
+		// Nurses attach notes without altering scheduling data
 		appointment.setNurseNotes(request.contents());
 		
 		appointmentRepository.save(appointment);
@@ -145,6 +153,7 @@ public class AppointmentService {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the attending doctor can set an appointment's result");
 		}
 		
+		// Only the assigned doctor can set the official result/summary
 		appointment.setAppointmentResults(request.contents());
 		
 		appointmentRepository.save(appointment);
@@ -204,6 +213,7 @@ public class AppointmentService {
 
         List<Appointment> appointments = appointmentRepository.findByDoctorIdAndStartTimeBetween(doctorId, dayStartUTC, dayEndUTC);
 
+        // Build buffered blocks around existing appointments so we can skip over busy slots quickly
         List<TimeBlock> buffered = new ArrayList<>();
         for (var appointment : appointments) {
             buffered.add(new TimeBlock(
@@ -242,6 +252,7 @@ public class AppointmentService {
             OffsetDateTime blockFrom = existing.getStartTime().minusMinutes(GAP_MINUTES);
             OffsetDateTime blockTo = existing.getEndTime().plusMinutes(GAP_MINUTES);
 
+            // reject if the requested slot overlaps an existing appointment including the configured GAP buffer
             if (intervalsOverlap(proposedStart, proposedEnd, blockFrom, blockTo)) {
                 throw new ResponseStatusException(
                         HttpStatus.CONFLICT,

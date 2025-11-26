@@ -3,6 +3,7 @@ package com.osu.HealthApp.models;
 import jakarta.persistence.*;
 import lombok.Data;
 
+/** Embedded address for a user record. */
 @Entity
 @Table(name = "addresses")
 @Data

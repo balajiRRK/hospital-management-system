@@ -13,6 +13,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
+/** Health metric creation with guardrails for BMI calculation. */
 @Service
 public class HealthMetricService {
 

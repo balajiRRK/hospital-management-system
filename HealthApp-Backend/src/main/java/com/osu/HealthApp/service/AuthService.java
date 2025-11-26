@@ -32,6 +32,10 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.UUID;
 
+/**
+ * Handles registration/login flows plus JWT issuance, refresh rotation, and cookie management.
+ * Everything is funneled through here so we consistently apply the same security checks.
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -61,7 +65,7 @@ public class AuthService {
         u.setEmail(email);
         u.setPasswordHash(encoder.encode(req.password()));
         u.setEnabled(true);
-        u.getRoles().add(Role.PATIENT); // safe default
+        u.getRoles().add(Role.PATIENT); // safe default for a new account
         users.save(u);
 
         return issueTokens(u, Context.PATIENT, HttpStatus.CREATED);
@@ -93,6 +97,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
         }
 
+        // Validate the metadata on the refresh token before issuing a new pair
         String jti = jws.getPayload().getId();
         String email = jws.getPayload().getSubject();
 		Context context = null;
@@ -133,6 +138,9 @@ public class AuthService {
                 .build();
     }
 
+    /**
+     * Issue access + refresh tokens, persist the refresh jti, and return the cookies in the response.
+     */
     private ResponseEntity<AuthResponse> issueTokens(User u, Context c, HttpStatus status) {
         String access = jwt.generateAccessToken(u, c);
         String jti = UUID.randomUUID().toString();
@@ -153,6 +161,7 @@ public class AuthService {
                 .body(new AuthResponse(true, u.getRoles()));
     }
 
+    /** Helper to read a cookie by name from the incoming request. */
     private String getCookie(HttpServletRequest req, String name) {
         if (req.getCookies() == null) return null;
         return Arrays.stream(req.getCookies())

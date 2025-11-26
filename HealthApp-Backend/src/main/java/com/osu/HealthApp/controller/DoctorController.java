@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/** Doctor-facing endpoints plus a public directory of doctors. */
 @RestController
 @RequestMapping("/api/doctor")
 public class DoctorController {
@@ -19,6 +20,7 @@ public class DoctorController {
         this.users = users;
     }
 
+    /** Example data visible to doctors to show role-based protection works. */
     @PreAuthorize("hasAnyRole('DOCTOR','ADMIN')")
     @GetMapping("/notes")
     public NotesResponse notes() {

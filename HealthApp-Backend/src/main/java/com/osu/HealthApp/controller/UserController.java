@@ -14,6 +14,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
+/** Endpoints for users to manage their own profile plus staff lookup by id. */
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -21,6 +22,7 @@ public class UserController {
 
     private final UserService userService;
 
+    /** Read-only view of the authenticated user's profile. */
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserProfileResponseDto> getMyProfile(Authentication authentication) {
@@ -28,6 +30,7 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserProfileById(user.getId()));
     }
 
+    /** Update mutable profile fields for the currently logged in user. */
     @PutMapping("/me/profile")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserProfileResponseDto> updateMyProfile(Authentication authentication, @RequestBody UserProfileDto profileDto) {
@@ -35,6 +38,7 @@ public class UserController {
         return ResponseEntity.ok(userService.updateUserProfile(user.getId(), profileDto));
     }
 
+    /** Upload a new profile photo to S3 and return its public URL. */
     @PostMapping(path = "/me/profile-photo", consumes = "multipart/form-data")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> uploadMyProfilePhoto(Authentication authentication, @RequestParam("file") MultipartFile file) {
@@ -50,6 +54,7 @@ public class UserController {
         }
     }
 
+    /** Change password after validating the current password. */
     @PostMapping("/me/password")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> resetMyPassword(Authentication authentication, @RequestBody PasswordResetDto passwordDto) {
@@ -58,6 +63,7 @@ public class UserController {
         return ResponseEntity.ok(Map.of("message", "Password updated successfully."));
     }
 
+    /** Staff-only lookup of any user's profile by id. */
     @GetMapping("/{userId}")
     @PreAuthorize("hasAuthority('CONTEXT_STAFF')")
     public ResponseEntity<UserProfileResponseDto> getUserById(@PathVariable Long userId) {

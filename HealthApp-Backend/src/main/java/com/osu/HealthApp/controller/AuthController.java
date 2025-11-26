@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Auth endpoints that wrap AuthService and return cookies with tokens. */
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor

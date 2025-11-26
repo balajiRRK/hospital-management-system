@@ -8,6 +8,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 
+/** Builds an SDK client for S3 using credentials and region from configuration. */
 @Configuration
 public class AwsS3Config {
 

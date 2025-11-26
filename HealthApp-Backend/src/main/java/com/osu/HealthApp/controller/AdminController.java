@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/** Admin management endpoints for users and roles. */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
@@ -30,6 +31,7 @@ public class AdminController {
 	private final UserService userService;
 	private final AuthService authService;
 	
+    /** Return a quick view of all users keyed by email with assigned roles. */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/getusers")
     public Map<String, Set<Role>> getUsers() {
@@ -49,8 +51,9 @@ public class AdminController {
     public ResponseEntity<Void> reactivate(@Valid @RequestBody SimpleUserRequest req) {
         userService.enableAccount(req.email().trim().toLowerCase());
 		return ResponseEntity.ok().build();
-    }
+	}
 	
+    /** Normalize input strings to Role enums before delegating to service. */
 	@PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/addroles", consumes = "application/json", produces = "application/json")
     public ResponseEntity<UserRoleResponse> addRoles(@Valid @RequestBody UserRoleRequest req) {
@@ -68,6 +71,7 @@ public class AdminController {
         return ResponseEntity.ok(new UserRoleResponse(email, userService.addRoles(req.email().trim().toLowerCase(), enumRoles)));
     }
 	
+    /** Removes roles except PATIENT (guarded in the service) after validating input values. */
 	@PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/removeroles", consumes = "application/json", produces = "application/json")
     public ResponseEntity<UserRoleResponse> removeRoles(@Valid @RequestBody UserRoleRequest req) {

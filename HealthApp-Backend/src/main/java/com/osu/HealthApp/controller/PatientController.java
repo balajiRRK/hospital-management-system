@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+/** Simple stub endpoints reserved for patient role. */
 @RestController
 @RequestMapping("/api/patient")
 public class PatientController {
