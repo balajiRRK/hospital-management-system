@@ -31,7 +31,7 @@ export default function PrivacySecurity() {
       await axios.post(`${base}/api/users/me/password`, {
         currentPassword: passwords.current,
         newPassword: passwords.newPass,
-      });
+      }, { withCredentials: true });
       alert('Password updated successfully!');
       setPasswords({ current: '', newPass: '', confirm: '' });
     } catch (error) {
