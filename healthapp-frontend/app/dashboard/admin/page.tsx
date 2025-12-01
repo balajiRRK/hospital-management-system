@@ -8,7 +8,7 @@ import {
   getNurseNote,
   getAppointmentResult,
   getUserById,
-  getUserEmailById, 
+  getUserEmailById,
 } from "@/lib/api";
 
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +34,7 @@ import {
 export type Role = 'ADMIN' | 'PATIENT' | 'DOCTOR' | 'NURSE';
 
 type UsersResponse = Record<string, Role[]>;
+type UserStatusResponse = Record<string, boolean>; 
 
 const ALL_ROLES: Role[] = ['ADMIN', 'PATIENT', 'DOCTOR', 'NURSE'];
 
@@ -42,10 +43,24 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// getting the calling the new api function for status (thanks justin)
+const getAccountStatus = async (email: string): Promise<boolean> => {
+    try {
+        const res = await api.get<boolean>(`/api/admin/account-status/${encodeURIComponent(email)}`);
+        return res.data;
+    } catch (e) {
+        console.error(`Failed to get status for ${email}:`, e);
+        // tchanged to o disabled if call fails
+        return false; 
+    }
+};
+
 export default function AdminDashboardPage() {
   const router = useRouter();
 
   const [users, setUsers] = useState<UsersResponse>({});
+  // storing all tore the active/disbaled status for each user states
+  const [statuses, setStatuses] = useState<UserStatusResponse>({}); 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -70,7 +85,22 @@ const refresh = async () => {
       })
     );
 
-    setUsers(Object.fromEntries(entries));
+    const usersByEmail = Object.fromEntries(entries);
+    setUsers(usersByEmail);
+    
+    // now I also fetch account status for all users
+    const emails = Object.keys(usersByEmail);
+    const statusPromises = emails.map(getAccountStatus);
+    const statusesResults = await Promise.all(statusPromises);
+    
+    // mapping results back to email keys and update state
+    const statusesByEmail = emails.reduce((acc, email, index) => {
+        acc[email] = statusesResults[index];
+        return acc;
+    }, {} as UserStatusResponse);
+
+    setStatuses(statusesByEmail); 
+
   } catch (e: any) {
     setError(e?.response?.data?.message || e?.message || 'Failed to load users');
   } finally {
@@ -96,6 +126,8 @@ const refresh = async () => {
     try {
       setBusy(email, true);
       await api.post('/api/admin/activate', { email });
+      // set status to true (active) after successful activating
+      setStatuses((prev) => ({ ...prev, [email]: true })); 
     } catch (e) {
       console.error(e);
       alert('Failed to activate user.');
@@ -108,6 +140,8 @@ const refresh = async () => {
     try {
       setBusy(email, true);
       await api.post('/api/admin/deactivate', { email });
+      // seting status to false (disabled) after decativating
+      setStatuses((prev) => ({ ...prev, [email]: false })); 
     } catch (e) {
       console.error(e);
       alert('Failed to deactivate user.');
@@ -183,14 +217,18 @@ const refresh = async () => {
           <TableRow>
             <TableHead className="w-[320px]">Email</TableHead>
             <TableHead>Current Roles</TableHead>
+            <TableHead className="w-[100px] text-center">Status</TableHead> 
             <TableHead className="w-[260px]">Select Role</TableHead>
             <TableHead className="w-[220px]">Role Actions</TableHead>
-            <TableHead className="w-[220px] text-right">Status</TableHead>
+            <TableHead className="w-[220px] text-right">Status Actions</TableHead> 
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.map(([email, roles]) => {
             const uniqueRoles = Array.from(new Set(roles || []));
+            // checking the status
+            const isActive = statuses[email];
+            
             return (
               <TableRow key={email}>
                 <TableCell
@@ -220,7 +258,17 @@ const refresh = async () => {
                     ))
                   )}
                 </TableCell>
-
+                
+                {/* made this new col for the status */}
+                <TableCell className="text-center">
+                    <Badge 
+                        variant={isActive ? 'default' : 'destructive'} 
+                        className='py-1'
+                    >
+                        {isActive ? 'Active' : 'Disabled'}
+                    </Badge>
+                </TableCell>
+                
                 <TableCell>
                   <Select
                     value={selection[email] || ''}
@@ -254,14 +302,15 @@ const refresh = async () => {
                     </Button>
                   </div>
                 </TableCell>
-
+                
                 <TableCell className="text-right">
                   <div className="inline-flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => onActivate(email)}
-                      disabled={rowBusy[email]}
+                      // disabped if actibe
+                      disabled={rowBusy[email] || isActive} 
                     >
                       Activate
                     </Button>
@@ -269,7 +318,8 @@ const refresh = async () => {
                       size="sm"
                       variant="destructive"
                       onClick={() => onDeactivate(email)}
-                      disabled={rowBusy[email]}
+                      // disable if already disabled
+                      disabled={rowBusy[email] || !isActive}
                     >
                       Deactivate
                     </Button>
