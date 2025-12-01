@@ -59,6 +59,13 @@ public class AdminController {
         userService.enableAccount(req.email().trim().toLowerCase());
         return ResponseEntity.ok().build();
     }
+	
+	// Gets the user's account activation status
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/account-status/{email}")
+    public ResponseEntity<Boolean> getAccountStatus(@PathVariable String email) {
+        return ResponseEntity.ok(userService.isAccountEnabled(email.trim().toLowerCase()));
+    }
 
     /**
      * Normalize input strings to Role enums before delegating to service.
@@ -99,16 +106,5 @@ public class AdminController {
         }
 
         return ResponseEntity.ok(new UserRoleResponse(email, userService.removeRoles(email, enumRoles)));
-    }
-
-    // made this function to get the user's status
-    // not sure if its trying to access thr right fields / location
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/user-status/{email}")
-    public boolean getUserStatus(@PathVariable String email) {
-        User u = users.findByEmailIgnoreCase(email.trim().toLowerCase())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
-        return u.isEnabled();
     }
 }

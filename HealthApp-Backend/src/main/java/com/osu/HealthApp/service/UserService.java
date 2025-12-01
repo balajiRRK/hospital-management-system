@@ -113,6 +113,12 @@ public class UserService {
         user.setEnabled(true);
         users.save(user);
     }
+	
+	public Boolean isAccountEnabled(String email) {
+		User user = users.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No such user"));
+		return user.isEnabled();
+	}
 
     @Transactional
     public Set<Role> addRoles(String email, Set<Role> roles) {
