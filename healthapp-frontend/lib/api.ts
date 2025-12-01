@@ -205,3 +205,9 @@ export async function getAppointmentResult(appointmentId: number): Promise<strin
 
   return text;
 }
+
+// BACKEND: GET /api/appointments (for nurses btw)
+export async function getAllAppointments(): Promise<AppointmentResponse[]> {
+  const res = await fetch(`${API_BASE}/api/appointments`, { credentials: 'include' });
+  return json<AppointmentResponse[]>(res);
+}
