@@ -2,6 +2,7 @@
 
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,8 @@ const api = axios.create({
 });
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
+
   const [users, setUsers] = useState<UsersResponse>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -169,8 +172,20 @@ export default function AdminDashboardPage() {
             const uniqueRoles = Array.from(new Set(roles || []));
             return (
               <TableRow key={email}>
-                <TableCell className="max-w-[300px] truncate font-medium" title={email}>
-                  {email}
+                <TableCell
+                  className="flex items-center gap-2 max-w-[300px] truncate font-medium"
+                  title={email}
+                >
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      router.push(`/dashboard/admin/history/${encodeURIComponent(email)}`)
+                    }
+                  >
+                    View History
+                  </Button>
+                  <span className="truncate">{email}</span>
                 </TableCell>
 
                 <TableCell className="space-x-2">
