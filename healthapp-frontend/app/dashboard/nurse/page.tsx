@@ -10,7 +10,7 @@ import {
 import {
   getMe,
   MeResponse,
-  getAppointmentsForDoctor,
+  getAllAppointments,
   AppointmentResponse,
   getUserById,
   UserProfileResponse,
@@ -52,24 +52,28 @@ export default function NurseDashboard() {
     async function fetchNurse() {
       const me = await getMe();
       setNurse(me);
-      const nurseAppointments = await getAppointmentsForDoctor(me.id);
-      setAppointments(nurseAppointments);
+      const allAppointments = await getAllAppointments();
+setAppointments(allAppointments);
+
     }
     fetchNurse();
   }, []);
 
-  useEffect(() => {
-    if (!nurse) return;
-    async function fetchPatients() {
-      const nurseAppointments = await getAppointmentsForDoctor(nurse.id);
-      setAppointments(nurseAppointments);
-      const uniquePatients = Array.from(
-        new Set(nurseAppointments.map((a) => a.patientId))
-      ).map((id) => ({ id }));
-      setPatients(uniquePatients);
-    }
-    fetchPatients();
-  }, [nurse]);
+useEffect(() => {
+  if (!nurse) return;
+  async function fetchPatients() {
+    const allAppointments = await getAllAppointments();
+    setAppointments(allAppointments);
+
+    const uniquePatients = Array.from(
+      new Set(allAppointments.map((a) => a.patientId))
+    ).map((id) => ({ id }));
+
+    setPatients(uniquePatients);
+  }
+  fetchPatients();
+}, [nurse]);
+
 
   useEffect(() => {
     if (appointments.length === 0) return;
