@@ -361,15 +361,13 @@ useEffect(() => {
             <div className="flex-1 space-y-4">
               {activeTab === "Patient Data" && selectedPatientProfile ? (
                 <>
-                  <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+                  <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 min-h-[50vh] h-auto">
                     <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
                       Patient Appointments
                     </h2>
-                    <ul className="max-h-60 space-y-2 overflow-y-auto">
+                    <ul className="max-h-full overflow-y-auto space-y-2">
                       {appointments
-                        .filter(
-                          (a) => a.patientId === selectedPatientProfile.id
-                        )
+                        .filter((a) => a.patientId === selectedPatientProfile.id)
                         .map((app) => (
                           <li
                             key={app.id}
