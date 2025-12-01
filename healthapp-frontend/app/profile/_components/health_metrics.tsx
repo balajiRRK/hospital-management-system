@@ -6,7 +6,6 @@ import { useAuth } from '@/app/providers/authProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-// --- Constants & Types ---
 const LBS_TO_KG = 0.45359237;
 const IN_TO_M = 0.0254;
 
@@ -24,7 +23,7 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
-// --- Helper Functions ---
+//Functions
 
 function parsePoundsToKg(input: string): number | null {
   if (!input) return null;
@@ -43,13 +42,12 @@ function parseFeetInchesToMeters(input: string): number | null {
   if (!input) return null;
   const s = input.trim().toLowerCase();
 
-  // 1. Strict Metric/Inches rejection to avoid confusion
+  //Strict Metric/Inches rejection to avoid confusion
   if (/\bcm\b|\bm\b|\bin\b|["”]/.test(s) && !/(\d+)\s*(?:'|ft)/.test(s)) {
     return null;
   }
 
-  // 2. Format: 6' 7" | 6ft 7in | 6'7
-  // Capture group 1: Feet, Capture group 2: Inches (optional)
+  // Format: 6' 7" | 6ft 7in | 6'7
   const explicitPattern = /^(\d+)\s*(?:'|ft)\s*(\d+)?(?:\s*(?:in|["”]))?$/;
   const matchExplicit = s.match(explicitPattern);
 
@@ -61,7 +59,7 @@ function parseFeetInchesToMeters(input: string): number | null {
     return (feet * 12 + inches) * IN_TO_M;
   }
 
-  // 3. Format: 6 2 (Two numbers separated by space)
+  //Format: 6 2 (Two numbers separated by space)
   const spacePattern = /^(\d+)\s+(\d+)$/;
   const matchSpace = s.match(spacePattern);
   
@@ -108,8 +106,6 @@ function friendlyError(err: any, fallback: string) {
   return fallback;
 }
 
-// --- Component ---
-
 export default function HealthMetrics() {
   const { user } = useAuth();
   const userId = user?.id;
@@ -124,7 +120,7 @@ export default function HealthMetrics() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Derived Values
+
   const weightKg = useMemo(() => parsePoundsToKg(weightLbInput), [weightLbInput]);
   const heightM = useMemo(() => parseFeetInchesToMeters(heightFtInInput), [heightFtInInput]);
   
@@ -135,7 +131,6 @@ export default function HealthMetrics() {
 
   const canSubmit = !!user && !!weightKg && !!heightM && weightKg > 0 && heightM > 0;
 
-  // --- API Actions ---
 
   const loadMetrics = useCallback(async () => {
     if (!userId) return;
@@ -186,8 +181,6 @@ export default function HealthMetrics() {
     }
   };
 
-  // --- Effects ---
-
   useEffect(() => {
     if (!userId) {
       setMetrics([]);
@@ -196,8 +189,6 @@ export default function HealthMetrics() {
     }
     loadMetrics();
   }, [userId, loadMetrics]);
-
-  // --- Render ---
 
   return (
     <div className="space-y-6">
