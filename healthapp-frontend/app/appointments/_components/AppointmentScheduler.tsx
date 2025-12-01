@@ -102,8 +102,8 @@ export default function AppointmentScheduler() {
       // Call the API to create the appointment.
       await createAppointment({
         doctorId: doctorId,
-        // .toISOString() converts the date to a UTC string
-        startTime: start.toISOString(),
+        // patientId left missing as it assumes if missing it must be signed in users id
+        startTime: start.toISOString(), // .toISOString() converts the date to a UTC string
         endTime: end.toISOString(),
         reason: reason.trim(),
       });
