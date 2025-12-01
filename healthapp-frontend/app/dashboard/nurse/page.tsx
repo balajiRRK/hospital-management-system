@@ -10,7 +10,7 @@ import {
 import {
   getMe,
   MeResponse,
-  getAllAppointments,
+  getAppointmentsForDoctor,
   AppointmentResponse,
   getUserById,
   UserProfileResponse,
@@ -52,8 +52,8 @@ export default function NurseDashboard() {
     async function fetchNurse() {
       const me = await getMe();
       setNurse(me);
-      const allAppointments = await getAllAppointments();
-      setAppointments(allAppointments);
+      const nurseAppointments = await getAppointmentsForDoctor(me.id);
+      setAppointments(nurseAppointments);
     }
     fetchNurse();
   }, []);
@@ -61,13 +61,15 @@ export default function NurseDashboard() {
   useEffect(() => {
     if (!nurse) return;
     async function fetchPatients() {
+      const nurseAppointments = await getAppointmentsForDoctor(nurse.id);
+      setAppointments(nurseAppointments);
       const uniquePatients = Array.from(
-        new Set(appointments.map((a) => a.patientId))
+        new Set(nurseAppointments.map((a) => a.patientId))
       ).map((id) => ({ id }));
       setPatients(uniquePatients);
     }
     fetchPatients();
-  }, [nurse, appointments.length]);
+  }, [nurse]);
 
   useEffect(() => {
     if (appointments.length === 0) return;
@@ -104,7 +106,7 @@ export default function NurseDashboard() {
       if (!selectedAppointmentId) return;
       try {
         const note = await getNurseNote(selectedAppointmentId);
-        setNurseNotes(note || "");
+        setNurseNotes(note || ""); // fetch existing note
         const app = appointments.find((a) => a.id === selectedAppointmentId);
         setVisitReason(app?.reason || "");
       } catch {
@@ -126,12 +128,12 @@ export default function NurseDashboard() {
       contents: nurseNotes || "",
     });
     alert("Nurse notes saved successfully");
-    setNurseNotes("");
+    // Keep the note in the textarea after saving
   };
 
-  const todayStr = new Date().toLocaleDateString();
-  const todaysAppointments = appointments.filter(
-    (a) => new Date(a.startTime).toLocaleDateString() === todayStr
+  const todayStr = new Date().toISOString().split("T")[0];
+  const todaysAppointments = appointments.filter((a) =>
+    a.startTime.startsWith(todayStr)
   );
 
   return (
@@ -391,7 +393,7 @@ export default function NurseDashboard() {
                         Visit Reason: {visitReason}
                       </p>
                       <textarea
-                        placeholder={nurseNotes || "Enter nurse notes here..."}
+                        placeholder="Enter nurse notes here..."
                         className="w-full rounded border p-2 dark:bg-gray-700 dark:text-gray-100"
                         value={nurseNotes}
                         onChange={(e) => setNurseNotes(e.target.value)}
