@@ -21,71 +21,94 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/** Admin management endpoints for users and roles. */
+/**
+ * Admin management endpoints for users and roles.
+ */
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
 public class AdminController {
-	
-	private final UserRepository users;
-	private final UserService userService;
-	private final AuthService authService;
-	
-    /** Return a quick view of all users keyed by email with assigned roles. */
+
+    private final UserRepository users;
+    private final UserService userService;
+    private final AuthService authService;
+
+    /**
+     * Return a quick view of all users keyed by user ID with assigned roles. (I
+     * updated it so that it reutrns id and role now)
+     */
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/getusers")
-    public Map<String, Set<Role>> getUsers() {
-        return users.findAll().stream().collect(Collectors.toMap(User::getEmail, User::getRoles));
+    public Map<Long, Set<Role>> getUsers() {
+        return users.findAll()
+                .stream()
+                .collect(Collectors.toMap(User::getId, User::getRoles));
     }
-	
-	@PreAuthorize("hasRole('ADMIN')")
+
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/deactivate", consumes = "application/json", produces = "application/json")
     public void deactivate(@Valid @RequestBody SimpleUserRequest req) {
-		String email = req.email().trim().toLowerCase();
+        String email = req.email().trim().toLowerCase();
         userService.disableAccount(email);
-		authService.logoutByEmail(email);
+        authService.logoutByEmail(email);
     }
-	
-	@PreAuthorize("hasRole('ADMIN')")
+
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/activate", consumes = "application/json", produces = "application/json")
     public ResponseEntity<Void> reactivate(@Valid @RequestBody SimpleUserRequest req) {
         userService.enableAccount(req.email().trim().toLowerCase());
-		return ResponseEntity.ok().build();
-	}
-	
-    /** Normalize input strings to Role enums before delegating to service. */
-	@PreAuthorize("hasRole('ADMIN')")
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Normalize input strings to Role enums before delegating to service.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/addroles", consumes = "application/json", produces = "application/json")
     public ResponseEntity<UserRoleResponse> addRoles(@Valid @RequestBody UserRoleRequest req) {
-		String email = req.email().trim().toLowerCase();
-		Set<String> roles = req.roles();
-		Set<Role> enumRoles = new HashSet<Role>();
-		for (String role : roles) {
-			try {
-				enumRoles.add(Role.valueOf(role));
-			} catch (IllegalArgumentException e) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role: " + role );
-			}
-		}
-		
+        String email = req.email().trim().toLowerCase();
+        Set<String> roles = req.roles();
+        Set<Role> enumRoles = new HashSet<Role>();
+        for (String role : roles) {
+            try {
+                enumRoles.add(Role.valueOf(role));
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role: " + role);
+            }
+        }
+
         return ResponseEntity.ok(new UserRoleResponse(email, userService.addRoles(req.email().trim().toLowerCase(), enumRoles)));
     }
-	
-    /** Removes roles except PATIENT (guarded in the service) after validating input values. */
-	@PreAuthorize("hasRole('ADMIN')")
+
+    /**
+     * Removes roles except PATIENT (guarded in the service) after validating
+     * input values.
+     */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/removeroles", consumes = "application/json", produces = "application/json")
     public ResponseEntity<UserRoleResponse> removeRoles(@Valid @RequestBody UserRoleRequest req) {
-		String email = req.email().trim().toLowerCase();
-		Set<String> roles = req.roles();
-		Set<Role> enumRoles = new HashSet<Role>();
-		for (String role : roles) {
-			try {
-				enumRoles.add(Role.valueOf(role));
-			} catch (IllegalArgumentException e) {
-				throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role: " + role );
-			}
-		}
-		
-		return ResponseEntity.ok(new UserRoleResponse(email, userService.removeRoles(email, enumRoles)));
+        String email = req.email().trim().toLowerCase();
+        Set<String> roles = req.roles();
+        Set<Role> enumRoles = new HashSet<Role>();
+        for (String role : roles) {
+            try {
+                enumRoles.add(Role.valueOf(role));
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid role: " + role);
+            }
+        }
+
+        return ResponseEntity.ok(new UserRoleResponse(email, userService.removeRoles(email, enumRoles)));
+    }
+
+    // made this function to get the user's status
+    // not sure if its trying to access thr right fields / location
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/user-status/{email}")
+    public boolean getUserStatus(@PathVariable String email) {
+        User u = users.findByEmailIgnoreCase(email.trim().toLowerCase())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        return u.isEnabled();
     }
 }
