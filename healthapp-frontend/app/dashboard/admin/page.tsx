@@ -3,6 +3,13 @@
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import {
+  getAppointmentsForPatient,
+  getNurseNote,
+  getAppointmentResult,
+  getUserById,
+  getUserEmailById, 
+} from "@/lib/api";
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -45,18 +52,32 @@ export default function AdminDashboardPage() {
   const [selection, setSelection] = useState<Record<string, Role | ''>>({});
   const [rowBusy, setRowBusy] = useState<Record<string, boolean>>({});
 
-  const refresh = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await api.get<UsersResponse>('/api/admin/getusers');
-      setUsers(res.data || {});
-    } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || 'Failed to load users');
-    } finally {
-      setLoading(false);
-    }
-  };
+const refresh = async () => {
+  try {
+    setLoading(true);
+    setError(null);
+
+    // here, I am not getting the user by the id (the method I updated in the back end)
+    const res = await api.get<Record<number, Role[]>>('/api/admin/getusers');
+    const usersById = res.data || {};
+
+    // now I fetch all the user info for each ID and get the email (I had already made this function back in the day)
+    const entries = await Promise.all(
+      Object.entries(usersById).map(async ([id, roles]) => {
+        const userId = Number(id);
+        const user = await getUserById(userId); // get full user
+        return [user.email, roles] as [string, Role[]];
+      })
+    );
+
+    setUsers(Object.fromEntries(entries));
+  } catch (e: any) {
+    setError(e?.response?.data?.message || e?.message || 'Failed to load users');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     refresh();

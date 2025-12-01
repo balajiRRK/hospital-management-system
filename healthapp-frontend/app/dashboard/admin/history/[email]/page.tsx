@@ -7,6 +7,7 @@ import {
   getAppointmentsForPatient,
   getNurseNote,
   getAppointmentResult,
+  getUserById,
 } from '@/lib/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
@@ -24,16 +25,24 @@ export default function AdminUserHistoryPage() {
   useEffect(() => {
     if (!decodedEmail) return;
 
-    console.log(`Fetching history for ${decodedEmail}`);
-
     const load = async () => {
       setLoadingHistory(true);
       try {
         const res = await fetch(`${API_BASE}/api/admin/getusers`, {
           credentials: 'include',
         });
-        const users: Record<string, { id: number; roles: string[] }> = await res.json();
-        const id = users[decodedEmail]?.id;
+        const usersById: Record<number, string[]> = await res.json();
+
+        const entries = await Promise.all(
+          Object.keys(usersById).map(async (idStr) => {
+            const id = Number(idStr);
+            const user = await getUserById(id);
+            return [user.email, id] as [string, number];
+          })
+        );
+
+        const emailToIdMap = Object.fromEntries(entries);
+        const id = emailToIdMap[decodedEmail];
         if (!id) return;
         setUserId(id);
 
