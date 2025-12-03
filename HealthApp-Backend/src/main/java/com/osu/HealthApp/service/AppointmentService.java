@@ -7,8 +7,8 @@ import com.osu.HealthApp.dtos.DoctorAvailabilityResponse;
 import com.osu.HealthApp.models.Appointment;
 import com.osu.HealthApp.models.User;
 import com.osu.HealthApp.models.Role;
-import com.osu.HealthApp.repo.AppointmentRepository;
-import com.osu.HealthApp.repo.UserRepository;
+import com.osu.HealthApp.repository.AppointmentRepository;
+import com.osu.HealthApp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.GrantedAuthority;
@@ -52,34 +52,35 @@ public class AppointmentService {
             }
             patientId = request.getPatientId();
         }
-		
-		Long doctorId = request.getDoctorId();
+
+        Long doctorId = request.getDoctorId();
         if (doctorId == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "doctorId is required");
         }
-		
-		if (patientId == doctorId) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "a patient cannot be their own doctor");
-		}
-		
+
+        if (patientId == doctorId) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "a patient cannot be their own doctor");
+        }
+
         if (request.getStartTime() == null || request.getEndTime() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "startTime and endTime are required");
         }
-		
+
         User patient = userRepository.findById(patientId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid patientId"));
         User doctor = userRepository.findById(request.getDoctorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid doctorId"));
-		
-		if (!doctor.getRoles().contains(Role.DOCTOR)) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid doctorId");
-		}
-		
+
+        if (!doctor.getRoles().contains(Role.DOCTOR)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid doctorId");
+        }
+
         OffsetDateTime start = request.getStartTime();
         OffsetDateTime end = request.getEndTime();
 
         if (!Duration.between(start.toInstant(), end.toInstant()).equals(Duration.ofMinutes(SLOT_MINUTES))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment must be exactly " + SLOT_MINUTES + " minutes long");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Appointment must be exactly " + SLOT_MINUTES + " minutes long");
         }
 
         // Enforce clinic buffer rules before saving
@@ -100,14 +101,17 @@ public class AppointmentService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
 
-        // Patients cannot change attending doctor/patient; they may only move their own slot
+        // Patients cannot change attending doctor/patient; they may only move their own
+        // slot
         if (isPatient()) {
             Long me = getCurrentUserIdOrThrow();
             if (!appointment.getPatient().getId().equals(me)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Patients can only update their own appointments");
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Patients can only update their own appointments");
             }
             if ((request.getPatientId() != null && !request.getPatientId().equals(me))
-                    || (request.getDoctorId() != null && !request.getDoctorId().equals(appointment.getDoctor().getId()))) {
+                    || (request.getDoctorId() != null
+                            && !request.getDoctorId().equals(appointment.getDoctor().getId()))) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot change doctor or patient");
             }
         }
@@ -120,7 +124,8 @@ public class AppointmentService {
         OffsetDateTime end = request.getEndTime();
 
         if (!Duration.between(start.toInstant(), end.toInstant()).equals(Duration.ofMinutes(SLOT_MINUTES))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Appointment must be exactly " + SLOT_MINUTES + " minutes long");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Appointment must be exactly " + SLOT_MINUTES + " minutes long");
         }
 
         ensureDoctorSlotFitsPolicy(appointment.getDoctor().getId(), start, end, appointmentId);
@@ -131,56 +136,59 @@ public class AppointmentService {
 
         return toResponse(appointmentRepository.save(appointment));
     }
-	
-	@Transactional
-	public void submitNurseNote(AppointmentNoteResultRequest request) {
-		Appointment appointment = appointmentRepository.findById(request.appointmentId())
+
+    @Transactional
+    public void submitNurseNote(AppointmentNoteResultRequest request) {
+        Appointment appointment = appointmentRepository.findById(request.appointmentId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
-		
-		// Nurses attach notes without altering scheduling data
-		appointment.setNurseNotes(request.contents());
-		
-		appointmentRepository.save(appointment);
-	}
-	
-	@Transactional
-	public void submitDoctorResult(AppointmentNoteResultRequest request) {
-		Appointment appointment = appointmentRepository.findById(request.appointmentId())
+
+        // Nurses attach notes without altering scheduling data
+        appointment.setNurseNotes(request.contents());
+
+        appointmentRepository.save(appointment);
+    }
+
+    @Transactional
+    public void submitDoctorResult(AppointmentNoteResultRequest request) {
+        Appointment appointment = appointmentRepository.findById(request.appointmentId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
-		
-		Long me = getCurrentUserIdOrThrow();
-		if (!appointment.getDoctor().getId().equals(me)) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the attending doctor can set an appointment's result");
-		}
-		
-		// Only the assigned doctor can set the official result/summary
-		appointment.setAppointmentResults(request.contents());
-		
-		appointmentRepository.save(appointment);
-	}
-	
-	public String getNurseNote(Long appointmentId) {
-		Appointment appointment = appointmentRepository.findById(appointmentId)
+
+        Long me = getCurrentUserIdOrThrow();
+        if (!appointment.getDoctor().getId().equals(me)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only the attending doctor can set an appointment's result");
+        }
+
+        // Only the assigned doctor can set the official result/summary
+        appointment.setAppointmentResults(request.contents());
+
+        appointmentRepository.save(appointment);
+    }
+
+    public String getNurseNote(Long appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
-		
-		return appointment.getNurseNotes();
-	}
-	
-	public String getAppointmentResult(Long appointmentId) {
-		Appointment appointment = appointmentRepository.findById(appointmentId)
+
+        return appointment.getNurseNotes();
+    }
+
+    public String getAppointmentResult(Long appointmentId) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appointment not found"));
-		
-		Long me = getCurrentUserIdOrThrow();
-		if (isPatient()) {
-			if (!appointment.getPatient().getId().equals(me)) {
-				throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the patient attending the appointment can view an appointment's result");
-			}
-		} else if (!isStaff()) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only authorized users can access appointment results");
-		}
-		
-		return appointment.getAppointmentResults();
-	}
+
+        Long me = getCurrentUserIdOrThrow();
+        if (isPatient()) {
+            if (!appointment.getPatient().getId().equals(me)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "Only the patient attending the appointment can view an appointment's result");
+            }
+        } else if (!isStaff()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Only authorized users can access appointment results");
+        }
+
+        return appointment.getAppointmentResults();
+    }
 
     @Transactional
     public void deleteAppointment(Long appointmentId) {
@@ -197,33 +205,40 @@ public class AppointmentService {
         if (isPatient() && !isSelf(patientId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot read another patient’s appointments");
         }
-        return appointmentRepository.findByPatientId(patientId).stream().map(this::toResponse).toList();
+        return appointmentRepository.findByPatientIdOrderByStartTimeDesc(patientId).stream().map(this::toResponse)
+                .toList();
     }
 
     public List<AppointmentResponse> getAppointmentsForDoctor(Long doctorId) {
         if (!isStaff()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Staff only");
         }
-        return appointmentRepository.findByDoctorId(doctorId).stream().map(this::toResponse).toList();
+        return appointmentRepository.findByDoctorIdOrderByStartTimeDesc(doctorId).stream().map(this::toResponse)
+                .toList();
     }
 
     public DoctorAvailabilityResponse getAvailabilityForDoctor(Long doctorId, LocalDate date) {
-        OffsetDateTime dayStartUTC = date.atTime(DAY_START).atZone(CLINIC_ZONE).toOffsetDateTime().withOffsetSameInstant(ZoneOffset.UTC);
-        OffsetDateTime dayEndUTC = date.atTime(DAY_END).atZone(CLINIC_ZONE).toOffsetDateTime().withOffsetSameInstant(ZoneOffset.UTC);
+        OffsetDateTime dayStartUTC = date.atTime(DAY_START).atZone(CLINIC_ZONE).toOffsetDateTime()
+                .withOffsetSameInstant(ZoneOffset.UTC);
+        OffsetDateTime dayEndUTC = date.atTime(DAY_END).atZone(CLINIC_ZONE).toOffsetDateTime()
+                .withOffsetSameInstant(ZoneOffset.UTC);
 
-        List<Appointment> appointments = appointmentRepository.findByDoctorIdAndStartTimeBetween(doctorId, dayStartUTC, dayEndUTC);
+        List<Appointment> appointments = appointmentRepository.findByDoctorIdAndStartTimeBetweenOrderByStartTimeDesc(
+                doctorId, dayStartUTC,
+                dayEndUTC);
 
-        // Build buffered blocks around existing appointments so we can skip over busy slots quickly
+        // Build buffered blocks around existing appointments so we can skip over busy
+        // slots quickly
         List<TimeBlock> buffered = new ArrayList<>();
         for (var appointment : appointments) {
             buffered.add(new TimeBlock(
                     appointment.getStartTime().minusMinutes(GAP_MINUTES),
-                    appointment.getEndTime().plusMinutes(GAP_MINUTES))
-            );
+                    appointment.getEndTime().plusMinutes(GAP_MINUTES)));
         }
 
         List<String> freeSlots = new ArrayList<>();
-        for (OffsetDateTime t = dayStartUTC; !t.plusMinutes(SLOT_MINUTES).isAfter(dayEndUTC); t = t.plusMinutes(STEP_MINUTES)) {
+        for (OffsetDateTime t = dayStartUTC; !t.plusMinutes(SLOT_MINUTES).isAfter(dayEndUTC); t = t
+                .plusMinutes(STEP_MINUTES)) {
             OffsetDateTime tEnd = t.plusMinutes(SLOT_MINUTES);
             OffsetDateTime finalT = t;
             boolean overlaps = buffered.stream().anyMatch(b -> intervalsOverlap(finalT, tEnd, b.start(), b.end()));
@@ -239,11 +254,14 @@ public class AppointmentService {
         return response;
     }
 
-    private void ensureDoctorSlotFitsPolicy(Long doctorId, OffsetDateTime proposedStart, OffsetDateTime proposedEnd, Long excludeAppointmentId) {
+    private void ensureDoctorSlotFitsPolicy(Long doctorId, OffsetDateTime proposedStart, OffsetDateTime proposedEnd,
+            Long excludeAppointmentId) {
         OffsetDateTime dayStart = proposedStart.with(LocalTime.MIN);
         OffsetDateTime dayEnd = proposedStart.with(LocalTime.MAX);
 
-        List<Appointment> sameDayAppointments = appointmentRepository.findByDoctorIdAndStartTimeBetween(doctorId, dayStart, dayEnd);
+        List<Appointment> sameDayAppointments = appointmentRepository
+                .findByDoctorIdAndStartTimeBetweenOrderByStartTimeDesc(doctorId,
+                        dayStart, dayEnd);
 
         for (var existing : sameDayAppointments) {
             if (excludeAppointmentId != null && excludeAppointmentId.equals(existing.getId())) {
@@ -252,17 +270,18 @@ public class AppointmentService {
             OffsetDateTime blockFrom = existing.getStartTime().minusMinutes(GAP_MINUTES);
             OffsetDateTime blockTo = existing.getEndTime().plusMinutes(GAP_MINUTES);
 
-            // reject if the requested slot overlaps an existing appointment including the configured GAP buffer
+            // reject if the requested slot overlaps an existing appointment including the
+            // configured GAP buffer
             if (intervalsOverlap(proposedStart, proposedEnd, blockFrom, blockTo)) {
                 throw new ResponseStatusException(
                         HttpStatus.CONFLICT,
-                        "Doctor not available: Slot conflicts with another appointment's buffer"
-                );
+                        "Doctor not available: Slot conflicts with another appointment's buffer");
             }
         }
     }
 
-    private static boolean intervalsOverlap(OffsetDateTime aStart, OffsetDateTime aEnd, OffsetDateTime bStart, OffsetDateTime bEnd) {
+    private static boolean intervalsOverlap(OffsetDateTime aStart, OffsetDateTime aEnd, OffsetDateTime bStart,
+            OffsetDateTime bEnd) {
         return aStart.toInstant().isBefore(bEnd.toInstant()) && bStart.toInstant().isBefore(aEnd.toInstant());
     }
 
@@ -276,7 +295,8 @@ public class AppointmentService {
                 .toList();
     }
 
-    private record TimeBlock(OffsetDateTime start, OffsetDateTime end) {}
+    private record TimeBlock(OffsetDateTime start, OffsetDateTime end) {
+    }
 
     private AppointmentResponse toResponse(Appointment a) {
         AppointmentResponse r = new AppointmentResponse();
@@ -308,8 +328,8 @@ public class AppointmentService {
     private boolean isSelf(Long userId) {
         return getCurrentUserIdOrThrow().equals(userId);
     }
-	
-	private User getCurrentUserOrThrow() {
+
+    private User getCurrentUserOrThrow() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || auth.getName() == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
@@ -317,7 +337,7 @@ public class AppointmentService {
         return userRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
     }
-	
+
     private Long getCurrentUserIdOrThrow() {
         return getCurrentUserOrThrow().getId();
     }

@@ -18,7 +18,7 @@ export default function Home() {
             asChild
             className="bg-black px-6 py-3 font-semibold text-white shadow transition hover:bg-gray-800"
           >
-            <Link href="/Sign-in">Get Started</Link>
+            <Link href="/sign-in">Get Started</Link>
           </Button>
         </div>
       </header>

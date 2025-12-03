@@ -1,4 +1,4 @@
-package com.osu.HealthApp.repo;
+package com.osu.HealthApp.repository;
 
 import com.osu.HealthApp.models.Role;
 import com.osu.HealthApp.models.User;

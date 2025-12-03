@@ -46,6 +46,22 @@ export default function Navbar() {
           {user ? (
             <>
               <NavigationMenuItem>
+                <Button variant="ghost" asChild className="mr-2">
+                  {/* Dynamic dashboard link based on user role */}
+                  <Link
+                    href={
+                      user.roles.includes('ADMIN')
+                        ? '/dashboard/admin'
+                        : user.roles.includes('DOCTOR')
+                          ? '/dashboard/doctor'
+                          : '/dashboard/patient'
+                    }
+                  >
+                    Dashboard
+                  </Link>
+                </Button>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
                 <Button variant="outline" className="px-3 py-2" onClick={() => logout()}>
                   Logout
                 </Button>
@@ -66,12 +82,12 @@ export default function Navbar() {
             <>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild className="rounded-md border px-3 py-2">
-                  <Link href="/Sign-in">Login</Link>
+                  <Link href="/sign-in">Login</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild className="rounded-md border px-3 py-2">
-                  <Link href="/Sign-up">Signup</Link>
+                  <Link href="/sign-up">Signup</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
             </>

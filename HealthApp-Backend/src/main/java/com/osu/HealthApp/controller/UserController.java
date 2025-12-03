@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,7 +34,8 @@ public class UserController {
     /** Update mutable profile fields for the currently logged in user. */
     @PutMapping("/me/profile")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<UserProfileResponseDto> updateMyProfile(Authentication authentication, @RequestBody UserProfileDto profileDto) {
+    public ResponseEntity<UserProfileResponseDto> updateMyProfile(Authentication authentication,
+            @Valid @RequestBody UserProfileDto profileDto) {
         User user = userService.getUserFromAuthentication(authentication);
         return ResponseEntity.ok(userService.updateUserProfile(user.getId(), profileDto));
     }
@@ -41,7 +43,8 @@ public class UserController {
     /** Upload a new profile photo to S3 and return its public URL. */
     @PostMapping(path = "/me/profile-photo", consumes = "multipart/form-data")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> uploadMyProfilePhoto(Authentication authentication, @RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadMyProfilePhoto(Authentication authentication,
+            @RequestParam("file") MultipartFile file) {
         User user = userService.getUserFromAuthentication(authentication);
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "File cannot be empty."));
@@ -57,7 +60,8 @@ public class UserController {
     /** Change password after validating the current password. */
     @PostMapping("/me/password")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<?> resetMyPassword(Authentication authentication, @RequestBody PasswordResetDto passwordDto) {
+    public ResponseEntity<?> resetMyPassword(Authentication authentication,
+            @Valid @RequestBody PasswordResetDto passwordDto) {
         User user = userService.getUserFromAuthentication(authentication);
         userService.updateUserPassword(user.getId(), passwordDto);
         return ResponseEntity.ok(Map.of("message", "Password updated successfully."));

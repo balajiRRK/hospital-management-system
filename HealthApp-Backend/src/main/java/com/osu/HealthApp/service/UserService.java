@@ -7,7 +7,7 @@ import com.osu.HealthApp.models.Address;
 import com.osu.HealthApp.models.EmergencyContact;
 import com.osu.HealthApp.models.Role;
 import com.osu.HealthApp.models.User;
-import com.osu.HealthApp.repo.UserRepository;
+import com.osu.HealthApp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -31,7 +31,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * User-facing operations: profile retrieval/updates, role management, and profile photo handling.
+ * User-facing operations: profile retrieval/updates, role management, and
+ * profile photo handling.
  * Keeps all validation in one place.
  */
 @Service
@@ -75,6 +76,9 @@ public class UserService {
         dto.setProfilePhotoUrl(user.getProfilePhotoUrl());
         dto.setDateOfBirth(user.getDateOfBirth());
         dto.setGender(user.getGender());
+        // Include roles so the frontend can determine specific access (like ADMIN vs
+        // DOCTOR)
+        dto.setRoles(user.getRoles());
 
         if (user.getAddress() != null) {
             Address address = user.getAddress();
@@ -113,12 +117,12 @@ public class UserService {
         user.setEnabled(true);
         users.save(user);
     }
-	
-	public Boolean isAccountEnabled(String email) {
-		User user = users.findByEmail(email)
+
+    public Boolean isAccountEnabled(String email) {
+        User user = users.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "No such user"));
-		return user.isEnabled();
-	}
+        return user.isEnabled();
+    }
 
     @Transactional
     public Set<Role> addRoles(String email, Set<Role> roles) {
@@ -170,7 +174,8 @@ public class UserService {
 
         UserProfileDto.EmergencyContactDto contactDto = profileDto.getEmergencyContact();
         if (contactDto != null) {
-            EmergencyContact contact = user.getEmergencyContact() == null ? new EmergencyContact() : user.getEmergencyContact();
+            EmergencyContact contact = user.getEmergencyContact() == null ? new EmergencyContact()
+                    : user.getEmergencyContact();
             contact.setName(contactDto.getName());
             contact.setPhoneNumber(contactDto.getPhoneNumber());
             user.setEmergencyContact(contact);
@@ -187,7 +192,6 @@ public class UserService {
         return users.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
     }
-
 
     /**
      * Store the uploaded profile photo in S3 and return a public URL.
@@ -234,7 +238,6 @@ public class UserService {
                     "S3 upload failed: " + e.awsErrorDetails().errorMessage(), e);
         }
     }
-
 
     /**
      * Validate the current password before setting a new hash.

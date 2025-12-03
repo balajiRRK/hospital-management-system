@@ -1,4 +1,4 @@
-package com.osu.HealthApp.repo;
+package com.osu.HealthApp.repository;
 
 import com.osu.HealthApp.models.HealthMetric;
 import org.springframework.data.jpa.repository.JpaRepository;

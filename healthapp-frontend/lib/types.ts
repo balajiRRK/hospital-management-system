@@ -43,6 +43,7 @@ export interface UserProfile {
   profilePhotoUrl: string | null;
   dateOfBirth: string;
   gender: Gender | '';
+  roles: string[];
   address: Address;
   emergencyContact: EmergencyContact;
 }
@@ -57,6 +58,7 @@ export type UserProfileResponseDto = {
   profilePhotoUrl: string | null;
   dateOfBirth: string | null;
   gender: Gender | null;
+  roles: string[] | null;
   address: Address | null;
   emergencyContact: EmergencyContact | null;
 };
@@ -87,6 +89,7 @@ export function dtoToUi(dto: UserProfileResponseDto): UserProfile {
     profilePhotoUrl: dto.profilePhotoUrl ?? null,
     dateOfBirth: dto.dateOfBirth ?? '',
     gender: dto.gender ?? '',
+    roles: dto.roles ?? [],
     address: dto.address ?? { streetAddress: '', city: '', state: '', postalCode: '', country: '' },
     emergencyContact: dto.emergencyContact ?? { name: '', phoneNumber: '' },
   };

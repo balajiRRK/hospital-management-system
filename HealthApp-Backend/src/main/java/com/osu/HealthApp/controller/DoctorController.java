@@ -1,7 +1,7 @@
 package com.osu.HealthApp.controller;
 
 import com.osu.HealthApp.models.Role;
-import com.osu.HealthApp.repo.UserRepository;
+import com.osu.HealthApp.repository.UserRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,8 +26,7 @@ public class DoctorController {
     public NotesResponse notes() {
         return new NotesResponse(
                 "doctor",
-                List.of("Patient A stable", "Patient B needs follow-up")
-        );
+                List.of("Patient A stable", "Patient B needs follow-up"));
     }
 
     @GetMapping("/doctors")

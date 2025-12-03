@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import {
   getMe,
-  MeResponse,
   getAllAppointments,
   AppointmentResponse,
   getUserById,
@@ -28,7 +27,7 @@ export default function NurseDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     new Date()
   );
-  const [nurse, setNurse] = useState<MeResponse | null>(null);
+  const [nurse, setNurse] = useState<UserProfileResponse | null>(null);
   const [appointments, setAppointments] = useState<AppointmentResponse[]>([]);
   const [patients, setPatients] = useState<{ id: number }[]>([]);
   const [patientNames, setPatientNames] = useState<Record<number, string>>({});
@@ -53,26 +52,26 @@ export default function NurseDashboard() {
       const me = await getMe();
       setNurse(me);
       const allAppointments = await getAllAppointments();
-setAppointments(allAppointments);
+      setAppointments(allAppointments);
 
     }
     fetchNurse();
   }, []);
 
-useEffect(() => {
-  if (!nurse) return;
-  async function fetchPatients() {
-    const allAppointments = await getAllAppointments();
-    setAppointments(allAppointments);
+  useEffect(() => {
+    if (!nurse) return;
+    async function fetchPatients() {
+      const allAppointments = await getAllAppointments();
+      setAppointments(allAppointments);
 
-    const uniquePatients = Array.from(
-      new Set(allAppointments.map((a) => a.patientId))
-    ).map((id) => ({ id }));
+      const uniquePatients = Array.from(
+        new Set(allAppointments.map((a) => a.patientId))
+      ).map((id) => ({ id }));
 
-    setPatients(uniquePatients);
-  }
-  fetchPatients();
-}, [nurse]);
+      setPatients(uniquePatients);
+    }
+    fetchPatients();
+  }, [nurse]);
 
 
   useEffect(() => {
@@ -155,11 +154,10 @@ useEffect(() => {
                 setVisitReason("");
                 setNurseNotes("");
               }}
-              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left ${
-                activeTab === tab.name
-                  ? "bg-green-600 text-white"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-              }`}
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left ${activeTab === tab.name
+                ? "bg-green-600 text-white"
+                : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                }`}
             >
               <tab.icon size={18} /> {tab.name}
             </button>
@@ -306,11 +304,10 @@ useEffect(() => {
                   ).map((p) => (
                     <li
                       key={p.id}
-                      className={`flex cursor-pointer justify-between rounded-lg border p-3 ${
-                        selectedPatient === p.id
-                          ? "bg-green-100 dark:bg-green-700"
-                          : "border-gray-200 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-700"
-                      }`}
+                      className={`flex cursor-pointer justify-between rounded-lg border p-3 ${selectedPatient === p.id
+                        ? "bg-green-100 dark:bg-green-700"
+                        : "border-gray-200 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-700"
+                        }`}
                       onClick={async () => {
                         setSelectedPatient(p.id);
                         setSelectedAppointmentId(null);
@@ -326,8 +323,8 @@ useEffect(() => {
                               email: "N/A",
                               phoneNumber: "N/A",
                               dateOfBirth: "N/A",
-                              address: null,
-                              emergencyContact: null,
+                              address: undefined,
+                              emergencyContact: undefined,
                             }
                           );
                         } catch {
@@ -338,8 +335,8 @@ useEffect(() => {
                             email: "N/A",
                             phoneNumber: "N/A",
                             dateOfBirth: "N/A",
-                            address: null,
-                            emergencyContact: null,
+                            address: undefined,
+                            emergencyContact: undefined,
                           });
                         }
                       }}
@@ -371,11 +368,10 @@ useEffect(() => {
                         .map((app) => (
                           <li
                             key={app.id}
-                            className={`cursor-pointer rounded p-2 ${
-                              selectedAppointmentId === app.id
-                                ? "bg-green-100 dark:bg-green-700"
-                                : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }`}
+                            className={`cursor-pointer rounded p-2 ${selectedAppointmentId === app.id
+                              ? "bg-green-100 dark:bg-green-700"
+                              : "hover:bg-gray-100 dark:hover:bg-gray-700"
+                              }`}
                             onClick={() => setSelectedAppointmentId(app.id)}
                           >
                             <p className="text-sm text-gray-700 dark:text-gray-200">
@@ -434,24 +430,19 @@ useEffect(() => {
                   <p>
                     <strong>Address:</strong>{" "}
                     {selectedPatientProfile.address
-                      ? `${
-                          selectedPatientProfile.address.streetAddress || "N/A"
-                        }, ${selectedPatientProfile.address.city || "N/A"}, ${
-                          selectedPatientProfile.address.state || "N/A"
-                        }, ${
-                          selectedPatientProfile.address.postalCode || "N/A"
-                        }, ${selectedPatientProfile.address.country || "N/A"}`
+                      ? `${selectedPatientProfile.address.streetAddress || "N/A"
+                      }, ${selectedPatientProfile.address.city || "N/A"}, ${selectedPatientProfile.address.state || "N/A"
+                      }, ${selectedPatientProfile.address.postalCode || "N/A"
+                      }, ${selectedPatientProfile.address.country || "N/A"}`
                       : "N/A"}
                   </p>
                   <p>
                     <strong>Emergency Contact:</strong>{" "}
                     {selectedPatientProfile.emergencyContact
-                      ? `${
-                          selectedPatientProfile.emergencyContact.name || "N/A"
-                        } (${
-                          selectedPatientProfile.emergencyContact.phoneNumber ||
-                          "N/A"
-                        })`
+                      ? `${selectedPatientProfile.emergencyContact.name || "N/A"
+                      } (${selectedPatientProfile.emergencyContact.phoneNumber ||
+                      "N/A"
+                      })`
                       : "N/A"}
                   </p>
                 </div>

@@ -9,8 +9,8 @@ import com.osu.HealthApp.models.Context;
 import com.osu.HealthApp.models.RefreshToken;
 import com.osu.HealthApp.models.Role;
 import com.osu.HealthApp.models.User;
-import com.osu.HealthApp.repo.RefreshTokenRepository;
-import com.osu.HealthApp.repo.UserRepository;
+import com.osu.HealthApp.repository.RefreshTokenRepository;
+import com.osu.HealthApp.repository.UserRepository;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtException;
@@ -33,8 +33,10 @@ import java.util.Arrays;
 import java.util.UUID;
 
 /**
- * Handles registration/login flows plus JWT issuance, refresh rotation, and cookie management.
- * Everything is funneled through here so we consistently apply the same security checks.
+ * Handles registration/login flows plus JWT issuance, refresh rotation, and
+ * cookie management.
+ * Everything is funneled through here so we consistently apply the same
+ * security checks.
  */
 @Service
 @RequiredArgsConstructor
@@ -46,10 +48,14 @@ public class AuthService {
     private final JwtService jwt;
     private final CookieUtil cookies;
 
-    @Value("${cookie.access-name}") private String accessCookieName;
-    @Value("${cookie.refresh-name}") private String refreshCookieName;
-    @Value("${jwt.access-ttl-minutes}") private long accessTtlMin;
-    @Value("${jwt.refresh-ttl-days}") private long refreshTtlDays;
+    @Value("${cookie.access-name}")
+    private String accessCookieName;
+    @Value("${cookie.refresh-name}")
+    private String refreshCookieName;
+    @Value("${jwt.access-ttl-minutes}")
+    private long accessTtlMin;
+    @Value("${jwt.refresh-ttl-days}")
+    private long refreshTtlDays;
 
     /** Register: everyone starts as PATIENT. */
     public ResponseEntity<AuthResponse> register(RegisterRequest req) {
@@ -79,16 +85,17 @@ public class AuthService {
         if (!u.isEnabled() || !encoder.matches(req.password(), u.getPasswordHash())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Bad credentials");
         }
-		if (c.equals(Context.STAFF) && u.getRoles().size() == 1 && u.getRoles().contains(Role.PATIENT)) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not staff");
-		}
+        if (c.equals(Context.STAFF) && u.getRoles().size() == 1 && u.getRoles().contains(Role.PATIENT)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not staff");
+        }
         return issueTokens(u, c, HttpStatus.OK);
     }
 
     /** Rotate refresh token and issue new cookies. */
     public ResponseEntity<AuthResponse> refresh(HttpServletRequest request) {
         String refresh = getCookie(request, refreshCookieName);
-        if (refresh == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing refresh token");
+        if (refresh == null)
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing refresh token");
 
         final Jws<Claims> jws;
         try {
@@ -100,15 +107,16 @@ public class AuthService {
         // Validate the metadata on the refresh token before issuing a new pair
         String jti = jws.getPayload().getId();
         String email = jws.getPayload().getSubject();
-		Context context = null;
-		try {
-			context = Context.valueOf(jws.getPayload().get("context").toString());
-		} catch (IllegalArgumentException e) {
-			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
-		}
+        Context context = null;
+        try {
+            context = Context.valueOf(jws.getPayload().get("context").toString());
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
+        }
 
         var record = rts.findByJtiAndRevokedFalse(jti)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token revoked/unknown"));
+                .orElseThrow(
+                        () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token revoked/unknown"));
 
         if (record.getExpiresAt().isBefore(Instant.now())) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Refresh token expired");
@@ -139,7 +147,8 @@ public class AuthService {
     }
 
     /**
-     * Issue access + refresh tokens, persist the refresh jti, and return the cookies in the response.
+     * Issue access + refresh tokens, persist the refresh jti, and return the
+     * cookies in the response.
      */
     private ResponseEntity<AuthResponse> issueTokens(User u, Context c, HttpStatus status) {
         String access = jwt.generateAccessToken(u, c);
@@ -163,7 +172,8 @@ public class AuthService {
 
     /** Helper to read a cookie by name from the incoming request. */
     private String getCookie(HttpServletRequest req, String name) {
-        if (req.getCookies() == null) return null;
+        if (req.getCookies() == null)
+            return null;
         return Arrays.stream(req.getCookies())
                 .filter(c -> name.equals(c.getName()))
                 .findFirst()

@@ -1,6 +1,6 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL;
 
-export type MeResponse = { id: number; email: string; name?: string };
+
 export type Doctor = { id: number; email: string; name?: string };
 export type AppointmentResponse = {
   id: number;
@@ -36,6 +36,7 @@ export type UserProfileResponse = {
   phoneNumber?: string;
   profilePhotoUrl?: string;
   dateOfBirth?: string;
+  roles?: string[];
   address?: Address;
   emergencyContact?: EmergencyContact;
 };
@@ -48,9 +49,9 @@ async function json<T>(res: Response): Promise<T> {
   return res.json();
 }
 
-export async function getMe(): Promise<MeResponse> {
-  const res = await fetch(`${API_BASE}/api/me`, { credentials: 'include' });
-  return json<MeResponse>(res);
+export async function getMe(): Promise<UserProfileResponse> {
+  const res = await fetch(`${API_BASE}/api/users/me`, { credentials: 'include' });
+  return json<UserProfileResponse>(res);
 }
 
 // BACKEND: GET /api/doctor/doctors

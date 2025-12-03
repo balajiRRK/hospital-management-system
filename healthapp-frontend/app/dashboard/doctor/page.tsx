@@ -17,7 +17,6 @@ import {
   getMe,
   getNurseNote,
   getUserById,
-  MeResponse,
   submitDoctorResult,
   UserProfileResponse,
 } from "@/lib/api";
@@ -38,7 +37,7 @@ export default function DoctorDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     new Date()
   );
-  const [doctor, setDoctor] = useState<MeResponse | null>(null);
+  const [doctor, setDoctor] = useState<UserProfileResponse | null>(null);
   const [appointments, setAppointments] = useState<AppointmentResponse[]>([]);
   const [patients, setPatients] = useState<{ id: number }[]>([]);
   const [patientEmails, setPatientEmails] = useState<Record<number, string>>(
@@ -88,6 +87,7 @@ export default function DoctorDashboard() {
   useEffect(() => {
     if (!doctor) return;
     async function fetchPatients() {
+      if (!doctor) return;
       const doctorAppointments = await getAppointmentsForDoctor(doctor.id);
       setAppointments(doctorAppointments);
       const uniquePatients = Array.from(
@@ -145,10 +145,10 @@ export default function DoctorDashboard() {
     if (!selectedPatient) return;
     async function fetchPatientHistory() {
       try {
-        const profile = await getUserById(selectedPatient);
+        const profile = await getUserById(selectedPatient!);
         setSelectedPatientProfile(profile);
         const patientAppointments = await getAppointmentsForPatient(
-          selectedPatient
+          selectedPatient!
         );
         const appointmentsWithNotes: AppointmentWithNotes[] = await Promise.all(
           patientAppointments.map(async (app) => {
@@ -160,8 +160,7 @@ export default function DoctorDashboard() {
               nurseNoteText = await getNurseNote(app.id);
               const nurseProfile = await getUserById(app.doctorId);
               nurseName = nurseProfile.firstName
-                ? `${nurseProfile.firstName} ${
-                    nurseProfile.lastName || ""
+                ? `${nurseProfile.firstName} ${nurseProfile.lastName || ""
                   }`.trim()
                 : nurseProfile.email || "N/A";
             } catch {
@@ -172,8 +171,7 @@ export default function DoctorDashboard() {
               doctorResultText = await getAppointmentResult(app.id);
               const doctorProfile = await getUserById(app.doctorId);
               doctorName = doctorProfile.firstName
-                ? `${doctorProfile.firstName} ${
-                    doctorProfile.lastName || ""
+                ? `${doctorProfile.firstName} ${doctorProfile.lastName || ""
                   }`.trim()
                 : doctorProfile.email || "N/A";
             } catch {
@@ -235,11 +233,10 @@ export default function DoctorDashboard() {
                 setNurseNote("");
                 setResultText("");
               }}
-              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left ${
-                activeTab === tab.name
-                  ? "bg-blue-600 text-white"
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-              }`}
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left ${activeTab === tab.name
+                ? "bg-blue-600 text-white"
+                : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                }`}
             >
               <tab.icon size={18} /> {tab.name}
             </button>
@@ -364,236 +361,229 @@ export default function DoctorDashboard() {
         {(activeTab === "Results" ||
           activeTab === "Patients" ||
           activeTab === "History") && (
-          <main className="flex gap-6 p-8">
-            <div className="flex max-h-[calc(100vh-4rem)] w-1/3 flex-col overflow-y-auto rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Patients
-              </h2>
-              {activeTab === "Results" && (
-                <input
-                  type="text"
-                  placeholder="Search patient by name"
-                  className="mb-4 w-full rounded border px-2 py-1 text-gray-900 dark:bg-gray-700 dark:text-gray-100"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              )}
-              <ul className="space-y-3">
-                {(activeTab === "Results" ? filteredPatients : patients)
-                  .length > 0 ? (
-                  (activeTab === "Results" ? filteredPatients : patients).map(
-                    (p) => (
-                      <li
-                        key={p.id}
-                        className={`flex cursor-pointer justify-between rounded-lg border p-3 ${
-                          selectedPatient === p.id
+            <main className="flex gap-6 p-8">
+              <div className="flex max-h-[calc(100vh-4rem)] w-1/3 flex-col overflow-y-auto rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+                <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Patients
+                </h2>
+                {activeTab === "Results" && (
+                  <input
+                    type="text"
+                    placeholder="Search patient by name"
+                    className="mb-4 w-full rounded border px-2 py-1 text-gray-900 dark:bg-gray-700 dark:text-gray-100"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                )}
+                <ul className="space-y-3">
+                  {(activeTab === "Results" ? filteredPatients : patients)
+                    .length > 0 ? (
+                    (activeTab === "Results" ? filteredPatients : patients).map(
+                      (p) => (
+                        <li
+                          key={p.id}
+                          className={`flex cursor-pointer justify-between rounded-lg border p-3 ${selectedPatient === p.id
                             ? "bg-blue-100 dark:bg-blue-700"
                             : "border-gray-200 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-700"
-                        }`}
-                        onClick={async () => {
-                          setSelectedPatient(p.id);
-                          setSelectedAppointmentId(null);
-                          setNurseNote("");
-                          setResultText("");
-                          try {
-                            const profile = await getUserById(p.id);
-                            setSelectedPatientProfile(
-                              profile || {
+                            }`}
+                          onClick={async () => {
+                            setSelectedPatient(p.id);
+                            setSelectedAppointmentId(null);
+                            setNurseNote("");
+                            setResultText("");
+                            try {
+                              const profile = await getUserById(p.id);
+                              setSelectedPatientProfile(
+                                profile || {
+                                  id: p.id,
+                                  email: "N/A",
+                                  firstName: "N/A",
+                                  lastName: "N/A",
+                                }
+                              );
+                            } catch {
+                              setSelectedPatientProfile({
                                 id: p.id,
                                 email: "N/A",
                                 firstName: "N/A",
                                 lastName: "N/A",
-                              }
-                            );
-                          } catch {
-                            setSelectedPatientProfile({
-                              id: p.id,
-                              email: "N/A",
-                              firstName: "N/A",
-                              lastName: "N/A",
-                            });
-                          }
-                        }}
-                      >
-                        <span className="text-gray-700 dark:text-gray-300">
-                          {patientNames[p.id] || "N/A"}
-                        </span>
-                        <span className="text-gray-500">
-                          {patientEmails[p.id] || "N/A"}
-                        </span>
-                      </li>
+                              });
+                            }
+                          }}
+                        >
+                          <span className="text-gray-700 dark:text-gray-300">
+                            {patientNames[p.id] || "N/A"}
+                          </span>
+                          <span className="text-gray-500">
+                            {patientEmails[p.id] || "N/A"}
+                          </span>
+                        </li>
+                      )
                     )
-                  )
-                ) : (
-                  <p className="text-gray-500">No patients found</p>
-                )}
-              </ul>
-            </div>
+                  ) : (
+                    <p className="text-gray-500">No patients found</p>
+                  )}
+                </ul>
+              </div>
 
-            <div className="flex-1 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-              {activeTab === "Results" && selectedPatientProfile && (
-                <main className="flex flex-col gap-4 p-8">
-                  <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 min-h-[50vh] h-auto">
-                    <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      Patient Appointments
-                    </h2>
-                    <ul className="max-h-full overflow-y-auto space-y-2">
-                      {appointments
-                        .filter((a) => a.patientId === selectedPatientProfile.id)
-                        .map((app) => (
-                          <li
-                            key={app.id}
-                            className={`cursor-pointer rounded p-2 ${
-                              selectedAppointmentId === app.id
+              <div className="flex-1 rounded-lg bg-white p-6 shadow dark:bg-gray-800">
+                {activeTab === "Results" && selectedPatientProfile && (
+                  <main className="flex flex-col gap-4 p-8">
+                    <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800 min-h-[50vh] h-auto">
+                      <h2 className="mb-3 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        Patient Appointments
+                      </h2>
+                      <ul className="max-h-full overflow-y-auto space-y-2">
+                        {appointments
+                          .filter((a) => a.patientId === selectedPatientProfile.id)
+                          .map((app) => (
+                            <li
+                              key={app.id}
+                              className={`cursor-pointer rounded p-2 ${selectedAppointmentId === app.id
                                 ? "bg-green-100 dark:bg-green-700"
                                 : "hover:bg-gray-100 dark:hover:bg-gray-700"
-                            }`}
-                            onClick={() => setSelectedAppointmentId(app.id)}
+                                }`}
+                              onClick={() => setSelectedAppointmentId(app.id)}
+                            >
+                              <p className="text-sm text-gray-700 dark:text-gray-200">
+                                {new Date(app.startTime).toLocaleString()}
+                              </p>
+                              <p className="font-medium text-gray-900 dark:text-gray-100">
+                                {app.reason}
+                              </p>
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+
+                    {selectedAppointmentId && (
+                      <div className="space-y-4 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+                        <div>
+                          <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
+                            Nurse Note
+                          </h3>
+                          <p className="rounded border bg-gray-50 p-2 dark:bg-gray-700">
+                            {nurseNote || "No note available"}
+                          </p>
+                        </div>
+
+                        <div>
+                          <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
+                            Doctor Result
+                          </h3>
+                          <textarea
+                            placeholder={
+                              resultText ? "Edit result" : "Enter result"
+                            }
+                            className="w-full rounded border p-2 dark:bg-gray-700 dark:text-gray-100"
+                            value={resultText}
+                            onChange={(e) => setResultText(e.target.value)}
+                          />
+                          <button
+                            className="mt-2 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                            onClick={handleSaveResult}
                           >
-                            <p className="text-sm text-gray-700 dark:text-gray-200">
-                              {new Date(app.startTime).toLocaleString()}
-                            </p>
+                            Save Result
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </main>
+                )}
+
+                {activeTab === "History" && selectedPatientProfile && (
+                  <div className="space-y-4">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      Appointment History
+                    </h2>
+                    {patientHistory.length > 0 ? (
+                      <ul className="max-h-[60vh] space-y-3 overflow-y-auto">
+                        {patientHistory.map((app) => (
+                          <li
+                            key={app.id}
+                            className="rounded-lg border p-3 dark:border-gray-700"
+                          >
                             <p className="font-medium text-gray-900 dark:text-gray-100">
                               {app.reason}
                             </p>
+                            <p className="text-sm text-gray-500">
+                              {new Date(app.startTime).toLocaleString()} -{" "}
+                              {new Date(app.endTime).toLocaleTimeString()}
+                            </p>
+                            <div className="mt-2 space-y-1">
+                              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                Nurse Note (by {app.nurseName}):
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {app.nurseNote || "No note available"}
+                              </p>
+                              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                Doctor Result (by {app.doctorName}):
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {app.doctorResult || "No result"}
+                              </p>
+                            </div>
                           </li>
                         ))}
-                    </ul>
+                      </ul>
+                    ) : (
+                      <p className="text-gray-500">
+                        No appointment history for this patient.
+                      </p>
+                    )}
                   </div>
+                )}
 
-                  {selectedAppointmentId && (
-                    <div className="space-y-4 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
-                      <div>
-                        <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
-                          Nurse Note
-                        </h3>
-                        <p className="rounded border bg-gray-50 p-2 dark:bg-gray-700">
-                          {nurseNote || "No note available"}
-                        </p>
-                      </div>
-
-                      <div>
-                        <h3 className="text-md font-semibold text-gray-900 dark:text-gray-100">
-                          Doctor Result
-                        </h3>
-                        <textarea
-                          placeholder={
-                            resultText ? "Edit result" : "Enter result"
-                          }
-                          className="w-full rounded border p-2 dark:bg-gray-700 dark:text-gray-100"
-                          value={resultText}
-                          onChange={(e) => setResultText(e.target.value)}
-                        />
-                        <button
-                          className="mt-2 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                          onClick={handleSaveResult}
-                        >
-                          Save Result
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </main>
-              )}
-
-              {activeTab === "History" && selectedPatientProfile && (
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    Appointment History
-                  </h2>
-                  {patientHistory.length > 0 ? (
-                    <ul className="max-h-[60vh] space-y-3 overflow-y-auto">
-                      {patientHistory.map((app) => (
-                        <li
-                          key={app.id}
-                          className="rounded-lg border p-3 dark:border-gray-700"
-                        >
-                          <p className="font-medium text-gray-900 dark:text-gray-100">
-                            {app.reason}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {new Date(app.startTime).toLocaleString()} -{" "}
-                            {new Date(app.endTime).toLocaleTimeString()}
-                          </p>
-                          <div className="mt-2 space-y-1">
-                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                              Nurse Note (by {app.nurseName}):
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {app.nurseNote || "No note available"}
-                            </p>
-                            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                              Doctor Result (by {app.doctorName}):
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {app.doctorResult || "No result"}
-                            </p>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-gray-500">
-                      No appointment history for this patient.
+                {activeTab === "Patients" && selectedPatientProfile && (
+                  <div className="space-y-2">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      Patient Details
+                    </h2>
+                    <p>
+                      <strong>Name:</strong> {selectedPatientProfile.firstName}{" "}
+                      {selectedPatientProfile.lastName}
                     </p>
-                  )}
-                </div>
-              )}
-
-              {activeTab === "Patients" && selectedPatientProfile && (
-                <div className="space-y-2">
-                  <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    Patient Details
-                  </h2>
-                  <p>
-                    <strong>Name:</strong> {selectedPatientProfile.firstName}{" "}
-                    {selectedPatientProfile.lastName}
-                  </p>
-                  <p>
-                    <strong>Email:</strong> {selectedPatientProfile.email}
-                  </p>
-                  <p>
-                    <strong>Phone:</strong>{" "}
-                    {selectedPatientProfile.phoneNumber || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Date of Birth:</strong>{" "}
-                    {selectedPatientProfile.dateOfBirth || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Address:</strong>{" "}
-                    {selectedPatientProfile.address
-                      ? `${
-                          selectedPatientProfile.address.streetAddress || "N/A"
-                        }, ${selectedPatientProfile.address.city || "N/A"}, ${
-                          selectedPatientProfile.address.state || "N/A"
-                        }, ${
-                          selectedPatientProfile.address.postalCode || "N/A"
+                    <p>
+                      <strong>Email:</strong> {selectedPatientProfile.email}
+                    </p>
+                    <p>
+                      <strong>Phone:</strong>{" "}
+                      {selectedPatientProfile.phoneNumber || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Date of Birth:</strong>{" "}
+                      {selectedPatientProfile.dateOfBirth || "N/A"}
+                    </p>
+                    <p>
+                      <strong>Address:</strong>{" "}
+                      {selectedPatientProfile.address
+                        ? `${selectedPatientProfile.address.streetAddress || "N/A"
+                        }, ${selectedPatientProfile.address.city || "N/A"}, ${selectedPatientProfile.address.state || "N/A"
+                        }, ${selectedPatientProfile.address.postalCode || "N/A"
                         }, ${selectedPatientProfile.address.country || "N/A"}`
-                      : "N/A"}
-                  </p>
-                  <p>
-                    <strong>Emergency Contact:</strong>{" "}
-                    {selectedPatientProfile.emergencyContact
-                      ? `${
-                          selectedPatientProfile.emergencyContact.name || "N/A"
-                        } (${
-                          selectedPatientProfile.emergencyContact.phoneNumber ||
-                          "N/A"
+                        : "N/A"}
+                    </p>
+                    <p>
+                      <strong>Emergency Contact:</strong>{" "}
+                      {selectedPatientProfile.emergencyContact
+                        ? `${selectedPatientProfile.emergencyContact.name || "N/A"
+                        } (${selectedPatientProfile.emergencyContact.phoneNumber ||
+                        "N/A"
                         })`
-                      : "N/A"}
-                  </p>
-                </div>
-              )}
+                        : "N/A"}
+                    </p>
+                  </div>
+                )}
 
-              {!selectedPatientProfile && (
-                <p className="text-gray-500">
-                  Select a patient to view details
-                </p>
-              )}
-            </div>
-          </main>
-        )}
+                {!selectedPatientProfile && (
+                  <p className="text-gray-500">
+                    Select a patient to view details
+                  </p>
+                )}
+              </div>
+            </main>
+          )}
       </div>
     </div>
   );

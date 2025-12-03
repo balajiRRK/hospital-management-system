@@ -1,9 +1,11 @@
 package com.osu.HealthApp.dtos;
 
 import com.osu.HealthApp.models.Gender;
+import com.osu.HealthApp.models.Role;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 @Data
 public class UserProfileResponseDto {
@@ -15,6 +17,7 @@ public class UserProfileResponseDto {
     private String profilePhotoUrl;
     private LocalDate dateOfBirth;
     private Gender gender;
+    private Set<Role> roles;
     private AddressDto address;
     private EmergencyContactDto emergencyContact;
 

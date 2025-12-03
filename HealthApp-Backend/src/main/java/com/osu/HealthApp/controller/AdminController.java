@@ -5,7 +5,7 @@ import com.osu.HealthApp.dtos.UserRoleRequest;
 import com.osu.HealthApp.dtos.UserRoleResponse;
 import com.osu.HealthApp.models.Role;
 import com.osu.HealthApp.models.User;
-import com.osu.HealthApp.repo.UserRepository;
+import com.osu.HealthApp.repository.UserRepository;
 import com.osu.HealthApp.service.AuthService;
 import com.osu.HealthApp.service.UserService;
 import jakarta.validation.Valid;
@@ -59,8 +59,8 @@ public class AdminController {
         userService.enableAccount(req.email().trim().toLowerCase());
         return ResponseEntity.ok().build();
     }
-	
-	// Gets the user's account activation status
+
+    // Gets the user's account activation status
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/account-status/{email}")
     public ResponseEntity<Boolean> getAccountStatus(@PathVariable String email) {
@@ -84,7 +84,8 @@ public class AdminController {
             }
         }
 
-        return ResponseEntity.ok(new UserRoleResponse(email, userService.addRoles(req.email().trim().toLowerCase(), enumRoles)));
+        return ResponseEntity
+                .ok(new UserRoleResponse(email, userService.addRoles(req.email().trim().toLowerCase(), enumRoles)));
     }
 
     /**

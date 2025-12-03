@@ -158,7 +158,7 @@ export default function SignIn() {
 
         <div className="text-muted-foreground mt-6 text-center text-sm">
           No account?{' '}
-          <a href="/Sign-up" className="font-bold text-black underline hover:no-underline">
+          <a href="/sign-up" className="font-bold text-black underline hover:no-underline">
             Create one
           </a>
         </div>
