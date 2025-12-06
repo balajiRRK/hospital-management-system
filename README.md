@@ -1,6 +1,6 @@
-# HealthApp
+# Hospital Management System
 
-A simple **health management application** designed for **doctors, nurses, patients, and administrators**.  
+A **health management application** designed for **doctors, nurses, patients, and administrators**.  
 The system includes **multi-role access**, **role-based views and permissions**, and **secure authentication**, creating an eficient, secure and HIPAA-aligned workflow environment for all users of the health application.  
 
 ---
